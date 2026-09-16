@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=SGRand
+Comment=SoulGold v.1.1.4 source randomizer
+Exec=SGRand
+Icon=sgrand
+Categories=Game;Utility;
+Terminal=false

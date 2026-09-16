@@ -42,6 +42,18 @@ def test_different_seeds_change_output(synthetic_source: Path) -> None:
     assert first["species_mapping_used"] != second["species_mapping_used"]
 
 
+def test_spoiler_free_report_omits_outcomes_without_changing_counts(
+    synthetic_source: Path,
+) -> None:
+    visible = Randomizer().run(synthetic_source, "hidden-seed")
+    hidden = Randomizer().run(synthetic_source, "hidden-seed", include_spoilers=False)
+    assert hidden["spoilers_included"] is False
+    assert hidden["starters"] == []
+    assert hidden["species_mapping_used"] == []
+    assert hidden["wild_changes"] == []
+    assert hidden["counts"] == visible["counts"]
+
+
 def test_mapping_preserves_evolution_edges_and_specials(synthetic_source: Path) -> None:
     species = load_species(synthetic_source)
     mapping = build_species_mapping(species, RngStreams("mapping").stream("wild-species"))
@@ -94,6 +106,22 @@ def test_apply_writes_manifest_and_preserves_protected_gift(synthetic_source: Pa
     lab = (synthetic_source / "data/maps/NewBarkTown_Lab/scripts.pory").read_text()
     assert "giveitem ITEM_POKE_BALL, 10" in lab
     assert tree_digest(synthetic_source)
+
+
+def test_spoiler_free_apply_writes_a_redacted_manifest(synthetic_source: Path) -> None:
+    report = Randomizer().run(
+        synthetic_source,
+        "secret-apply",
+        RunMode.APPLY,
+        include_spoilers=False,
+    )
+    manifest = json.loads(
+        (synthetic_source / "soulgold-randomizer-manifest.json").read_text(encoding="utf-8")
+    )
+    assert manifest == report
+    assert manifest["spoilers_included"] is False
+    assert manifest["starters"] == []
+    assert manifest["item_changes"] == []
 
 
 def test_transaction_rolls_back_every_committed_file(tmp_path: Path) -> None:

@@ -5,6 +5,11 @@ SGRand is a deterministic, source-level randomizer for Pokémon SoulGold
 synthetic test fixtures. It does not contain or redistribute SoulGold source,
 graphics, ROMs, build products or other game assets.
 
+It includes both a scriptable CLI and a PySide6 desktop interface for Windows,
+Linux and macOS. The GUI can select or explicitly download the supported
+checkout, edit/import/export versioned settings, preview, apply transactionally
+and build through a platform adapter.
+
 The engine randomizes the main wild-encounter table, the nine starter choices,
 scripted static/gift Pokémon, item balls, hidden items, scripted item gifts and
 three independent move domains: level-up learnsets, TM/tutor compatibility and
@@ -30,6 +35,18 @@ python3.11 -m venv .venv
 ```
 
 On Windows, replace `.venv/bin/python` with `.venv\Scripts\python.exe`.
+
+Launch the desktop interface with:
+
+```bash
+sgrand-gui
+# or
+python -m sgrand.gui
+```
+
+The GUI provides Vanilla+, Balanced, Chaos and Custom presets, spoiler-free
+reports, dependency diagnostics, cancellable build logs and outputs named by
+profile and seed. See the complete [desktop guide](docs/gui.md).
 
 ## CLI
 
@@ -108,3 +125,9 @@ make -C /tmp/sgrand-build -j2
 Never commit the checkout, generated manifest, ROM, ELF, map file or build
 directory. See [the architecture](docs/architecture.md) and the audited
 [SoulGold source map](docs/source-map.md).
+
+Cross-platform desktop bundles are defined in
+[`release-gui.yml`](.github/workflows/release-gui.yml). They contain the
+randomizer only—never SoulGold or a ROM. Windows and macOS CI artifacts are
+currently unsigned; signing limitations and release requirements are described
+in [the packaging notes](packaging/README.md).

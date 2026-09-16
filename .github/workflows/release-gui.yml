@@ -1,0 +1,125 @@
+name: GUI packages
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install -e '.[dev]'
+      - run: python -m pytest -q
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: mypy src/sgrand
+
+  windows-x64:
+    needs: test
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          architecture: x64
+          cache: pip
+      - run: python -m pip install '.[packaging]'
+      - run: python -m PyInstaller --noconfirm --clean packaging/sgrand.spec
+      - name: Smoke-test frozen application
+        shell: pwsh
+        run: dist/SGRand/SGRand.exe --smoke-test
+      - name: Verify package contains no game artifacts
+        shell: pwsh
+        run: |
+          $forbidden = Get-ChildItem dist -Recurse -Include *.gba,*.elf,*.map
+          if ($forbidden) { throw "Game artifacts found in GUI package" }
+      - name: Create archive
+        shell: pwsh
+        run: Compress-Archive -Path dist/SGRand -DestinationPath SGRand-Windows-x64.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SGRand-Windows-x64
+          path: SGRand-Windows-x64.zip
+
+  linux-appimage:
+    needs: test
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install '.[packaging]'
+      - run: python -m PyInstaller --noconfirm --clean packaging/sgrand.spec
+      - name: Smoke-test frozen application
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: dist/SGRand/SGRand --smoke-test
+      - name: Assemble AppDir
+        run: |
+          mkdir -p AppDir/usr/lib/sgrand AppDir/usr/share/applications AppDir/usr/share/icons/hicolor/scalable/apps
+          cp -a dist/SGRand/. AppDir/usr/lib/sgrand/
+          cp packaging/linux/AppRun AppDir/AppRun
+          cp packaging/linux/sgrand.desktop AppDir/sgrand.desktop
+          cp packaging/linux/sgrand.desktop AppDir/usr/share/applications/
+          cp packaging/linux/sgrand.svg AppDir/sgrand.svg
+          cp packaging/linux/sgrand.svg AppDir/usr/share/icons/hicolor/scalable/apps/
+          chmod +x AppDir/AppRun
+      - name: Build AppImage
+        run: |
+          curl -L --fail --retry 3 -o appimagetool.AppImage \
+            https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool.AppImage
+          ARCH=x86_64 ./appimagetool.AppImage --appimage-extract-and-run AppDir SGRand-Linux-x86_64.AppImage
+      - name: Verify package contains no game artifacts
+        run: test -z "$(find AppDir -type f \( -name '*.gba' -o -name '*.elf' -o -name '*.map' \) -print -quit)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SGRand-Linux-AppImage
+          path: SGRand-Linux-x86_64.AppImage
+
+  macos:
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15-intel
+            architecture: x64
+            artifact: SGRand-macOS-Intel
+          - runner: macos-15
+            architecture: arm64
+            artifact: SGRand-macOS-Apple-Silicon
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          architecture: ${{ matrix.architecture }}
+          cache: pip
+      - run: python -m pip install '.[packaging]'
+      - run: python -m PyInstaller --noconfirm --clean packaging/sgrand.spec
+      - name: Smoke-test frozen application
+        run: dist/SGRand.app/Contents/MacOS/SGRand --smoke-test
+      - name: Verify package contains no game artifacts
+        run: test -z "$(find dist/SGRand.app -type f \( -name '*.gba' -o -name '*.elf' -o -name '*.map' \) -print -quit)"
+      - name: Create archive
+        run: ditto -c -k --sequesterRsrc --keepParent dist/SGRand.app "${{ matrix.artifact }}.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}.zip

@@ -1,6 +1,9 @@
 .work/
 dist/
 build/
+AppDir/
+*.AppImage
+SGRand-*.zip
 *.gba
 *.elf
 *.map

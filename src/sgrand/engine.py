@@ -21,6 +21,7 @@ from .moves import (
     transform_move_compatibility,
     transform_move_properties,
 )
+from .reporting import redact_spoilers
 from .rng import RngStreams
 from .source import (
     discover_form_locked_abilities,
@@ -84,6 +85,7 @@ class Randomizer:
         ability_profile: str | None = None,
         trainer_config_path: Path | None = None,
         trainer_profile: str | None = None,
+        include_spoilers: bool = True,
     ) -> Plan:
         source = source.resolve()
         validate_source(source)
@@ -229,6 +231,7 @@ class Randomizer:
             "seed_input": seed_text,
             "seed_numeric": streams.numeric_seed,
             "applied": mode is RunMode.APPLY,
+            "spoilers_included": include_spoilers,
             "rng_streams": [
                 "wild-species",
                 "static-gift-species",
@@ -317,6 +320,8 @@ class Randomizer:
             "item_changes": map_item_changes + scripted_item_changes,
             "writes": write_records,
         }
+        if not include_spoilers:
+            report = redact_spoilers(report)
         return Plan(report=report, writes=tuple(planned_writes), manifest_path=manifest)
 
     def run(
@@ -331,6 +336,7 @@ class Randomizer:
         ability_profile: str | None = None,
         trainer_config_path: Path | None = None,
         trainer_profile: str | None = None,
+        include_spoilers: bool = True,
     ) -> dict[str, Any]:
         plan = self.plan(
             source,
@@ -343,6 +349,7 @@ class Randomizer:
             ability_profile,
             trainer_config_path,
             trainer_profile,
+            include_spoilers,
         )
         if mode is RunMode.APPLY:
             if any(write.path == plan.manifest_path for write in plan.writes):

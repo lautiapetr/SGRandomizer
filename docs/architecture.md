@@ -27,6 +27,12 @@ synthetic fixtures and exported source trees.
 | `sgrand.abilities` | Resolves real species-info storage and plans separate normal/innate assignments. |
 | `sgrand.trainer_config` | Strict category profiles for team construction and legality policy. |
 | `sgrand.trainers` | Parses and rewrites canonical competitive trainer parties. |
+| `sgrand.gui_config` | Versioned aggregate GUI settings and isolated preset materialization. |
+| `sgrand.checkout` | Explicit shallow download of the one supported upstream tag. |
+| `sgrand.build` | Native Linux/macOS and Windows WSL2 build commands plus diagnostics. |
+| `sgrand.process` | Log-streaming, progress-aware and cancellable external processes. |
+| `sgrand.reporting` | Spoiler redaction and profile/seed-named outputs. |
+| `sgrand.gui` | PySide6 widgets and background worker orchestration. |
 | `sgrand.rng` | Stable seed parsing and named independent PRNG streams. |
 | `sgrand.transaction` | Preflight, staging, atomic per-file replacement and rollback. |
 | `sgrand.interfaces` | Protocols for the implemented move, ability, innate and trainer passes. |
@@ -84,6 +90,17 @@ The user seed is normalized to an integer. Each subsystem derives a separate
 Creating, removing or consuming values in one stream cannot shift another
 subsystem. Stream names are part of the manifest and should be treated as a
 reproducibility API: renaming one is a deliberate output-format change.
+
+The GUI does not duplicate engine behavior. Its workers materialize the three
+strict configuration documents in a private temporary directory, invoke the
+same `Randomizer` API and discard those temporary files. Preview remains
+read-only and apply retains the transaction boundary. Spoiler-free mode alters
+only the report assembled after planning, never selection or RNG consumption.
+
+Builds are deliberately outside the source transaction: `make` owns generated
+objects and can be cancelled as a process tree. Only a successful build is
+copied to the named output directory. Platform adapters produce argument arrays
+without a command shell, and diagnostics are read-only.
 
 ## Extension design
 
