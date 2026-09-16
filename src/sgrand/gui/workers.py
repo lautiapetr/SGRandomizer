@@ -27,6 +27,14 @@ class EngineRequest:
     mode: RunMode
 
 
+@dataclass(frozen=True)
+class EngineResult:
+    """Result and immutable request context transferred back to the GUI thread."""
+
+    request: EngineRequest
+    report: dict[str, Any]
+
+
 class Worker(QObject):
     failed = Signal(str)
     cancelled = Signal(str)
@@ -67,6 +75,7 @@ class EngineWorker(Worker):
                     trainer_profile=paths.trainer_profile,
                     include_spoilers=not self.request.config.spoiler_free,
                 )
+            report["gui_profile"] = self.request.config.preset
             self.progress.emit(90)
             if self.request.mode is RunMode.APPLY:
                 try:
@@ -84,7 +93,7 @@ class EngineWorker(Worker):
                 else:
                     self.log.emit(f"Reporte técnico: {report_path}")
             self.progress.emit(100)
-            self.completed.emit(report)
+            self.completed.emit(EngineResult(self.request, report))
         except ProcessCancelled as exc:
             self.cancelled.emit(str(exc))
         except Exception as exc:  # Qt worker boundary

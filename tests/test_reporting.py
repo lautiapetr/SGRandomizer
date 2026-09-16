@@ -8,8 +8,10 @@ import pytest
 from sgrand.errors import RandomizerError
 from sgrand.reporting import (
     format_readable_report,
+    load_applied_report,
     output_stem,
     publish_rom,
+    recover_build_report,
     redact_spoilers,
     write_technical_report,
 )
@@ -65,3 +67,49 @@ def test_named_output_and_report(tmp_path: Path) -> None:
     assert target.read_bytes() == b"synthetic-rom-output"
     with pytest.raises(RandomizerError, match="already exists"):
         publish_rom(checkout, tmp_path / "out", "Balanced", "seed / unsafe")
+
+
+def applied_report(seed: str, profile: str | None = None) -> dict[str, object]:
+    report: dict[str, object] = {
+        "tool": "SGRand",
+        "schema_version": 1,
+        "supported_tag": "v.1.1.4",
+        "seed_input": seed,
+        "applied": True,
+        "counts": {},
+        "writes": [],
+    }
+    if profile is not None:
+        report["gui_profile"] = profile
+    return report
+
+
+def test_build_report_recovery_prefers_named_report(tmp_path: Path) -> None:
+    checkout = tmp_path / "checkout"
+    output = tmp_path / "output"
+    checkout.mkdir()
+    output.mkdir()
+    report_path = output / "SGRand-Custom-recovery-seed-report.json"
+    report_path.write_text(json.dumps(applied_report("recovery-seed")), encoding="utf-8")
+
+    report, profile, source = recover_build_report(checkout, output, "recovery-seed", "Balanced")
+    assert report["seed_input"] == "recovery-seed"
+    assert profile == "Custom"
+    assert source == report_path
+
+
+def test_build_report_recovery_validates_manifest(tmp_path: Path) -> None:
+    checkout = tmp_path / "checkout"
+    checkout.mkdir()
+    manifest = checkout / "soulgold-randomizer-manifest.json"
+    manifest.write_text(json.dumps(applied_report("manifest-seed", "Chaos")), encoding="utf-8")
+
+    report, profile, source = recover_build_report(
+        checkout, tmp_path / "missing-output", "manifest-seed", "Balanced"
+    )
+    assert load_applied_report(manifest, "manifest-seed") == report
+    assert profile == "Chaos"
+    assert source == manifest
+
+    with pytest.raises(RandomizerError, match="Randomiza este checkout"):
+        recover_build_report(checkout, tmp_path, "wrong-seed", "Balanced")

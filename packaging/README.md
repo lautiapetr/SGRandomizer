@@ -8,9 +8,10 @@ The GitHub Actions workflow publishes four independently built artifacts:
 - macOS Intel application archive;
 - macOS Apple Silicon application archive.
 
-The jobs fail if a `.gba`, `.elf` or `.map` file appears in the assembled
-package. They never clone SoulGold: the application downloads the supported
-tag only after an end user explicitly selects a destination.
+The jobs fail if a game/ROM format or a recognizable SoulGold checkout path
+appears in the assembled package. They never clone SoulGold: the application
+downloads the supported tag only after an end user explicitly selects a
+destination.
 
 Build a local directory bundle with:
 
@@ -31,3 +32,23 @@ production release needs Developer ID Application signing, hardened runtime,
 notarization credentials stored as protected CI secrets and stapling after
 notarization. Intel and Apple Silicon are built separately rather than as a
 universal binary.
+
+## GitHub Actions
+
+`.github/workflows/release-gui.yml` runs on pull requests, pushes to `main`,
+version tags and manual dispatches. Its test gate runs pytest, Ruff and mypy,
+then independently builds Windows x64, Linux x86_64 AppImage, macOS Intel and
+macOS Apple Silicon packages. Superseded pull-request runs are cancelled and
+successful artifacts are retained for 14 days.
+
+Before packaging, `scripts/verify_bundle.py --tracked` rejects generated build
+roots and game/ROM formats accidentally tracked by Git. Every assembled bundle
+is scanned again before upload:
+
+```bash
+python scripts/verify_bundle.py --tracked
+python scripts/verify_bundle.py dist/SGRand
+```
+
+The workflow deliberately has read-only repository permissions and never
+downloads or builds SoulGold itself.

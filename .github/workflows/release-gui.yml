@@ -1,8 +1,10 @@
-name: GUI packages
+name: CI and desktop packages
 
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
     tags:
       - "v*"
   pull_request:
@@ -10,27 +12,41 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: desktop-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PYTHONUTF8: "1"
+
 jobs:
   test:
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      QT_QPA_PLATFORM: offscreen
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           cache: pip
       - run: python -m pip install -e '.[dev]'
+      - name: Reject tracked game and build artifacts
+        run: python scripts/verify_bundle.py --tracked
       - run: python -m pytest -q
-      - run: ruff check .
-      - run: ruff format --check .
-      - run: mypy src/sgrand
+      - run: python -m ruff check .
+      - run: python -m ruff format --check .
+      - run: python -m mypy src/sgrand
 
   windows-x64:
     needs: test
     runs-on: windows-2022
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           architecture: x64
@@ -42,23 +58,24 @@ jobs:
         run: dist/SGRand/SGRand.exe --smoke-test
       - name: Verify package contains no game artifacts
         shell: pwsh
-        run: |
-          $forbidden = Get-ChildItem dist -Recurse -Include *.gba,*.elf,*.map
-          if ($forbidden) { throw "Game artifacts found in GUI package" }
+        run: python scripts/verify_bundle.py dist/SGRand
       - name: Create archive
         shell: pwsh
         run: Compress-Archive -Path dist/SGRand -DestinationPath SGRand-Windows-x64.zip
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: SGRand-Windows-x64
           path: SGRand-Windows-x64.zip
+          if-no-files-found: error
+          retention-days: 14
 
   linux-appimage:
     needs: test
     runs-on: ubuntu-22.04
+    timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           cache: pip
@@ -85,14 +102,17 @@ jobs:
           chmod +x appimagetool.AppImage
           ARCH=x86_64 ./appimagetool.AppImage --appimage-extract-and-run AppDir SGRand-Linux-x86_64.AppImage
       - name: Verify package contains no game artifacts
-        run: test -z "$(find AppDir -type f \( -name '*.gba' -o -name '*.elf' -o -name '*.map' \) -print -quit)"
-      - uses: actions/upload-artifact@v4
+        run: python scripts/verify_bundle.py AppDir
+      - uses: actions/upload-artifact@v7
         with:
           name: SGRand-Linux-AppImage
           path: SGRand-Linux-x86_64.AppImage
+          if-no-files-found: error
+          retention-days: 14
 
   macos:
     needs: test
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -105,8 +125,8 @@ jobs:
             artifact: SGRand-macOS-Apple-Silicon
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           architecture: ${{ matrix.architecture }}
@@ -116,10 +136,12 @@ jobs:
       - name: Smoke-test frozen application
         run: dist/SGRand.app/Contents/MacOS/SGRand --smoke-test
       - name: Verify package contains no game artifacts
-        run: test -z "$(find dist/SGRand.app -type f \( -name '*.gba' -o -name '*.elf' -o -name '*.map' \) -print -quit)"
+        run: python scripts/verify_bundle.py dist/SGRand.app
       - name: Create archive
         run: ditto -c -k --sequesterRsrc --keepParent dist/SGRand.app "${{ matrix.artifact }}.zip"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact }}
           path: ${{ matrix.artifact }}.zip
+          if-no-files-found: error
+          retention-days: 14

@@ -33,6 +33,8 @@ synthetic fixtures and exported source trees.
 | `sgrand.process` | Log-streaming, progress-aware and cancellable external processes. |
 | `sgrand.reporting` | Spoiler redaction and profile/seed-named outputs. |
 | `sgrand.gui` | PySide6 widgets and background worker orchestration. |
+| `sgrand.gui.editors` | Lossless guided forms and validated advanced JSON editing. |
+| `sgrand.gui.tutorial` | Presentation-only walkthrough of the safe desktop workflow. |
 | `sgrand.rng` | Stable seed parsing and named independent PRNG streams. |
 | `sgrand.transaction` | Preflight, staging, atomic per-file replacement and rollback. |
 | `sgrand.interfaces` | Protocols for the implemented move, ability, innate and trainer passes. |
@@ -96,6 +98,18 @@ strict configuration documents in a private temporary directory, invoke the
 same `Randomizer` API and discard those temporary files. Preview remains
 read-only and apply retains the transaction boundary. Spoiler-free mode alters
 only the report assembled after planning, never selection or RNG consumption.
+The guided editors map every schema field to a native Qt control, preserve
+inactive profiles and untouched document fields, and round-trip through the
+same strict aggregate validator used for imports. Advanced JSON is accepted
+only after that validation. The tutorial has no dependency on workers, engine
+or build adapters and therefore cannot mutate a checkout.
+
+Workers never call widgets or text documents. Their signals append plain Python
+events to a thread-safe queue; a window-owned `QTimer` drains bounded batches in
+the GUI event loop. Completion context travels in immutable result objects, so
+Preview, Apply, diagnostics, downloads and builds cannot accidentally update Qt
+objects from a worker thread. Thread objects are released only after their
+finished event has passed through that same GUI-side queue.
 
 Builds are deliberately outside the source transaction: `make` owns generated
 objects and can be cancelled as a process tree. Only a successful build is

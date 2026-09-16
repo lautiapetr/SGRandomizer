@@ -9,6 +9,7 @@ import shutil
 from pathlib import Path
 from typing import Any
 
+from .constants import DEFAULT_MANIFEST, SUPPORTED_TAG
 from .errors import RandomizerError
 
 SPOILER_FIELDS = (
@@ -71,6 +72,74 @@ def write_technical_report(
     target = output_directory / f"{output_stem(profile, seed)}-report.json"
     target.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return target
+
+
+def load_applied_report(path: Path, expected_seed: str) -> dict[str, Any]:
+    """Load the minimum trusted report structure needed to resume a build."""
+    try:
+        raw: object = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise RandomizerError(f"Cannot read applied report {path}: {exc}") from exc
+    if not isinstance(raw, dict):
+        raise RandomizerError(f"Applied report {path} must contain an object")
+    report = raw
+    required = {
+        "tool": "SGRand",
+        "schema_version": 1,
+        "supported_tag": SUPPORTED_TAG,
+        "seed_input": expected_seed,
+        "applied": True,
+    }
+    mismatches = [key for key, expected in required.items() if report.get(key) != expected]
+    if (
+        mismatches
+        or not isinstance(report.get("counts"), dict)
+        or not isinstance(report.get("writes"), list)
+    ):
+        details = ", ".join(mismatches) if mismatches else "counts/writes"
+        raise RandomizerError(f"Applied report {path} failed validation: {details}")
+    return report
+
+
+def recover_build_report(
+    checkout: Path,
+    output_directory: Path,
+    seed: str,
+    fallback_profile: str,
+) -> tuple[dict[str, Any], str, Path]:
+    """Recover a completed apply after a GUI restart or unexpected shutdown."""
+    seed_slug = output_slug(seed)
+    suffix = f"-{seed_slug}-report.json"
+    candidates = sorted(output_directory.glob(f"SGRand-*-{seed_slug}-report.json"))
+    for candidate in candidates:
+        try:
+            report = load_applied_report(candidate, seed)
+        except RandomizerError:
+            continue
+        metadata_profile = report.get("gui_profile")
+        filename_profile = candidate.name.removeprefix("SGRand-").removesuffix(suffix)
+        profile = (
+            metadata_profile
+            if isinstance(metadata_profile, str) and metadata_profile.strip()
+            else filename_profile or fallback_profile
+        )
+        return report, profile, candidate
+
+    manifest = checkout / DEFAULT_MANIFEST
+    try:
+        report = load_applied_report(manifest, seed)
+    except RandomizerError as exc:
+        raise RandomizerError(
+            "Randomiza este checkout y semilla antes de compilar, o selecciona la "
+            "carpeta de salida que contiene su reporte técnico."
+        ) from exc
+    metadata_profile = report.get("gui_profile")
+    profile = (
+        metadata_profile
+        if isinstance(metadata_profile, str) and metadata_profile.strip()
+        else fallback_profile
+    )
+    return report, profile, manifest
 
 
 def publish_rom(

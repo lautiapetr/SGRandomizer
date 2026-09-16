@@ -5,7 +5,7 @@ from pathlib import Path
 from PyInstaller.utils.hooks import collect_data_files
 
 root = Path(SPECPATH).parent
-datas = collect_data_files("sgrand", includes=["configs/*.json"])
+datas = collect_data_files("sgrand", includes=["configs/*.json", "gui/assets/*.svg"])
 
 analysis = Analysis(
     [str(root / "packaging" / "gui_entry.py")],
@@ -48,7 +48,7 @@ if sys.platform == "darwin":
         bundle_identifier="org.sgrand.randomizer",
         info_plist={
             "CFBundleDisplayName": "SGRand",
-            "CFBundleShortVersionString": "0.6.0",
+            "CFBundleShortVersionString": "0.7.0",
             "NSHighResolutionCapable": True,
         },
     )

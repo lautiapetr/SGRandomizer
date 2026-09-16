@@ -44,9 +44,12 @@ sgrand-gui
 python -m sgrand.gui
 ```
 
-The GUI provides Vanilla+, Balanced, Chaos and Custom presets, spoiler-free
-reports, dependency diagnostics, cancellable build logs and outputs named by
-profile and seed. See the complete [desktop guide](docs/gui.md).
+The GUI provides Vanilla+, Balanced, Chaos and Custom presets, guided controls
+for every versioned randomization rule, Pokémon-player-friendly labels and
+contextual explanations on hover, original scalable icons and a high-contrast
+dark red-and-gold theme, a validated advanced-JSON escape hatch, an integrated F1
+tutorial, spoiler-free reports, dependency diagnostics, cancellable build logs
+and outputs named by profile and seed. See the complete [desktop guide](docs/gui.md).
 
 ## CLI
 

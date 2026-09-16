@@ -6,6 +6,7 @@ import sys
 
 from PySide6.QtWidgets import QApplication
 
+from .theme import APP_STYLESHEET, dark_palette, icon
 from .window import MainWindow
 
 
@@ -17,6 +18,10 @@ def main(argv: list[str] | None = None) -> int:
     application = QApplication(arguments)
     application.setApplicationName("SGRand")
     application.setOrganizationName("SGRand")
+    application.setStyle("Fusion")
+    application.setPalette(dark_palette())
+    application.setStyleSheet(APP_STYLESHEET)
+    application.setWindowIcon(icon("app"))
     window = MainWindow()
     if smoke_test:
         window.close()

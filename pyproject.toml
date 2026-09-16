@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sgrand"
-version = "0.6.0"
+version = "0.7.0"
 description = "Deterministic source randomizer for Pokemon SoulGold v.1.1.4"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -36,7 +36,7 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.setuptools.package-data]
-sgrand = ["configs/*.json"]
+sgrand = ["configs/*.json", "gui/assets/*.svg"]
 
 [tool.pytest.ini_options]
 addopts = "-ra"

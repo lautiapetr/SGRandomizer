@@ -12,8 +12,8 @@ sgrand-gui
 
 ## Workflow
 
-1. Select an existing clean SoulGold `v.1.1.4` checkout, or choose **Download
-   v.1.1.4**. Downloading performs a shallow, single-tag clone from
+1. Select an existing clean SoulGold `v.1.1.4` checkout, or choose **Descargar
+   proyecto**. Downloading performs a shallow, single-tag clone from
    `https://github.com/Eemeliri/soulgold.git` into the chosen empty directory;
    it never copies that checkout into the SGRand repository or executable.
 2. Select an output directory. The named ROM copy and technical report are
@@ -21,22 +21,78 @@ sgrand-gui
    creates its normal `Soulgold.gba` build product inside the selected checkout.
 3. Select a preset and enter a text or numeric seed. **Random** creates a
    cryptographically generated 128-bit hexadecimal seed.
-4. Edit the versioned JSON in the Moves, Abilities/Innates and Trainers tabs if
-   needed. Any edit changes the preset label to `Custom`. Import and export use
-   one schema-versioned JSON document containing all three engine documents.
-5. Run **Preview**. It validates and plans all edits in memory without writing.
+4. Adjust the guided controls in Moves, Abilities/Innates and Trainers. Every
+   engine option is represented by a labelled native control; percentages show
+   their unit and controls which do not apply to the selected mode are disabled.
+   Any edit changes the preset label to `Custom`.
+5. Run **Ver cambios**. It validates and plans all edits in memory without writing.
 6. Run **Randomize**. The existing transaction preflights, stages and commits
    all source changes and its manifest, rolling back committed files if a
    replacement fails.
-7. Run **Build**. Build output streams into the Logs tab, the progress bar
+7. Run **Compilar juego**. Build output streams into the **Actividad** tab, the progress bar
    advances through generation, compilation and linking, and **Cancel** stops
    the build process tree. A cancelled build can leave ordinary generated
    objects in the selected SoulGold checkout; it cannot leave a half-applied
    randomization transaction.
 
+Preview, randomization, diagnostics, download and compilation run in background
+workers. Their logs and results are transferred through a thread-safe event
+queue and are rendered only by the main Qt thread, keeping the interface
+responsive even during large reports and full build logs.
+
+If the application closes after a successful randomization, restart it with the
+same checkout, output directory and seed and choose **Compilar juego**. The GUI validates
+and recovers the technical report (or the applied manifest as a fallback), so a
+completed transaction does not need to be repeated. A mismatched seed or an
+invalid/non-applied report is rejected.
+
 The named output is `SGRand-<preset>-<seed>.gba`; the technical report is
 `SGRand-<preset>-<seed>-report.json`. Unsafe filename characters are replaced.
 Existing named ROM outputs are not overwritten.
+
+## Tutorial and configuration editors
+
+Choose **Abrir tutorial**, **Ayuda → Tutorial de uso**, or press **F1** at any time.
+The six-step walkthrough explains the source-checkout model, clean-checkout
+requirement, presets, deterministic seeds, spoiler-free mode, preview,
+transactional apply, diagnostics and compilation. It never changes settings or
+starts an operation.
+
+Every configurable label, field, checkbox, list, action button and tab has
+contextual help: leave the mouse pointer over it to see what it changes and how
+lower, higher or disabled values affect a playthrough. The same descriptions
+are exposed to keyboard status tips and accessibility tools. Terms such as STAB
+and BST are expanded in the interface, while source constants (`MOVE_`,
+`ABILITY_`, `SPECIES_`, `ITEM_` and `TYPE_`) are explained where they are still
+required for advanced exclusion lists.
+
+The dark red-and-gold interface uses original SGRand SVG artwork for its application,
+subsystem and workflow icons. These assets are packaged with the randomizer and
+are not extracted or copied from SoulGold. Main navigation uses player-facing
+names such as **MT y tutores**, **Jefes**, **Vista previa** and **Actividad**, while
+the exact source terminology remains available in tooltips and advanced mode.
+
+The editors intentionally separate concerns:
+
+- **Movimientos** has pages for protection/exclusion lists, level-up learnsets and
+  progressive power bands, TM/tutor compatibility, and basic properties. Move
+  effects are not exposed because the engine deliberately preserves them.
+- **Habilidades** has distinct pages and RNG policies for normal
+  abilities and innates, plus the custom blacklist, special-ability list and
+  mandatory form/species protections. The active engine profile is explicit.
+- **Entrenadores** has independent pages for ordinary trainers, leaders, the rival
+  and bosses, followed by global species/move/item lists and boss classes.
+
+List fields contain one source constant per line. Progressive power bands can
+be added and removed in their table. Invalid ranges, duplicates, missing
+mandatory protections or unknown schema keys are rejected by the same strict
+validators used by the engine.
+
+**Advanced JSON** opens the complete versioned document for just that section.
+Accepting the dialog validates it first and then synchronizes all visual
+controls. This is the lossless route for hand-authored configurations; the main
+interface does not require JSON knowledge. Import and export still use one
+schema-versioned aggregate document containing all three engine documents.
 
 ## Presets
 
@@ -63,7 +119,7 @@ the selected results.
 
 ## Build adapters and diagnostics
 
-**Diagnose** checks the selected checkout and the platform-specific commands;
+**Comprobar** checks the selected checkout and the platform-specific commands;
 it reports remediation text but never installs software or changes system
 configuration.
 
