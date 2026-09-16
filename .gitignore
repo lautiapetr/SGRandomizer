@@ -1,0 +1,9 @@
+.work/
+dist/
+build/
+*.gba
+*.elf
+*.map
+__pycache__/
+*.pyc
+.venv/
