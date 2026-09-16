@@ -7,3 +7,9 @@ build/
 __pycache__/
 *.pyc
 .venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.coverage
+soulgold-randomizer-manifest.json
