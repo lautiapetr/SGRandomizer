@@ -19,8 +19,16 @@ class RandomizationPass(Protocol):
         ...
 
 
-class MovesPass(RandomizationPass, Protocol):
-    """Reserved contract for move-data randomization."""
+class LevelUpLearnsetsPass(RandomizationPass, Protocol):
+    """Contract for level-up move assignment without changing effects."""
+
+
+class MoveCompatibilityPass(RandomizationPass, Protocol):
+    """Contract for TM and tutor compatibility decisions."""
+
+
+class MovePropertiesPass(RandomizationPass, Protocol):
+    """Contract for basic move fields, independent of battle effects."""
 
 
 class AbilitiesPass(RandomizationPass, Protocol):

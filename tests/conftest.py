@@ -5,6 +5,21 @@ from pathlib import Path
 
 import pytest
 
+from sgrand.move_config import load_move_config
+
+SYNTHETIC_MOVES = {
+    "MOVE_SYNTH_PHYSICAL_LOW": (40, 100, 35, "TYPE_NORMAL", "DAMAGE_CATEGORY_PHYSICAL"),
+    "MOVE_SYNTH_PHYSICAL_LOW_ALT": (50, 90, 25, "TYPE_GRASS", "DAMAGE_CATEGORY_PHYSICAL"),
+    "MOVE_SYNTH_PHYSICAL_MID": (70, 95, 20, "TYPE_FIRE", "DAMAGE_CATEGORY_PHYSICAL"),
+    "MOVE_SYNTH_PHYSICAL_HIGH": (120, 80, 5, "TYPE_ROCK", "DAMAGE_CATEGORY_PHYSICAL"),
+    "MOVE_SYNTH_SPECIAL_LOW": (40, 100, 30, "TYPE_GRASS", "DAMAGE_CATEGORY_SPECIAL"),
+    "MOVE_SYNTH_SPECIAL_MID": (80, 90, 15, "TYPE_WATER", "DAMAGE_CATEGORY_SPECIAL"),
+    "MOVE_SYNTH_SPECIAL_HIGH": (120, 75, 5, "TYPE_PSYCHIC", "DAMAGE_CATEGORY_SPECIAL"),
+    "MOVE_SYNTH_STATUS": (0, 100, 20, "TYPE_NORMAL", "DAMAGE_CATEGORY_STATUS"),
+    "MOVE_SYNTH_STATUS_ALT": (0, 85, 15, "TYPE_GRASS", "DAMAGE_CATEGORY_STATUS"),
+    "MOVE_SYNTH_INACCURATE": (90, 50, 10, "TYPE_FIRE", "DAMAGE_CATEGORY_SPECIAL"),
+}
+
 
 def _species_rows() -> list[dict[str, object]]:
     rows: list[dict[str, object]] = []
@@ -21,6 +36,8 @@ def _species_rows() -> list[dict[str, object]]:
                     "bst": 300 + stage * 100 + (ord(family) - ord("A")),
                     "categories": [],
                     "evolutions": evolutions,
+                    "types": ["TYPE_GRASS", "TYPE_NORMAL"],
+                    "stats": {"atk": 60 + stage * 10, "spa": 50 + stage * 10},
                 }
             )
             dex += 1
@@ -33,6 +50,8 @@ def _species_rows() -> list[dict[str, object]]:
                 "bst": 600,
                 "categories": ["legendary"],
                 "evolutions": [],
+                "types": ["TYPE_PSYCHIC"],
+                "stats": {"atk": 100, "spa": 120},
             },
             {
                 "constant": "SPECIES_SYNTH_ULTRA",
@@ -41,6 +60,8 @@ def _species_rows() -> list[dict[str, object]]:
                 "bst": 570,
                 "categories": [],
                 "evolutions": [],
+                "types": ["TYPE_BUG"],
+                "stats": {"atk": 100, "spa": 100},
             },
             {
                 "constant": "SPECIES_SYNTH_A0_MEGA",
@@ -49,6 +70,8 @@ def _species_rows() -> list[dict[str, object]]:
                 "bst": 650,
                 "categories": ["mega"],
                 "evolutions": [],
+                "types": ["TYPE_GRASS"],
+                "stats": {"atk": 120, "spa": 120},
             },
         ]
     )
@@ -61,6 +84,7 @@ def synthetic_source(tmp_path: Path) -> Path:
     paths = [
         "docs/data",
         "src/data/pokemon/species_info",
+        "src/data/pokemon/level_up_learnsets",
         "include/constants",
         "data/maps/TestMap",
         "data/maps/NewBarkTown_Lab",
@@ -69,11 +93,95 @@ def synthetic_source(tmp_path: Path) -> Path:
     for relative in paths:
         (source / relative).mkdir(parents=True, exist_ok=True)
 
+    move_config = load_move_config()
+    configured_moves = (
+        move_config.protected_moves | move_config.signature_moves | move_config.excluded_moves
+    )
+    move_values = dict(SYNTHETIC_MOVES)
+    for constant in configured_moves:
+        move_values.setdefault(
+            constant,
+            (50, 100, 15, "TYPE_NORMAL", "DAMAGE_CATEGORY_PHYSICAL"),
+        )
+    move_rows = {
+        constant: {
+            "constant": constant,
+            "power": values[0],
+            "accuracy": values[1],
+            "pp": values[2],
+            "type": values[3],
+            "category": values[4],
+        }
+        for constant, values in move_values.items()
+    }
+    species_rows = _species_rows()
     (source / "docs/data/romhack-docs.json").write_text(
-        json.dumps({"species": _species_rows()}), encoding="utf-8"
+        json.dumps({"species": species_rows, "moves": move_rows}), encoding="utf-8"
+    )
+    species_blocks = "\n".join(
+        f"[{row['constant']}] = {{\n"
+        "    .levelUpLearnset = sSyntheticLevelUpLearnset,\n"
+        + ("    .isUltraBeast = TRUE,\n" if row["constant"] == "SPECIES_SYNTH_ULTRA" else "")
+        + "},"
+        for row in species_rows
     )
     (source / "src/data/pokemon/species_info/gen_1_families.h").write_text(
-        "[SPECIES_SYNTH_ULTRA] = {\n    .isUltraBeast = TRUE,\n},\n", encoding="utf-8"
+        species_blocks + "\n", encoding="utf-8"
+    )
+    learnset = (
+        "#define LEVEL_UP_MOVE(lvl, moveLearned) {.move = moveLearned, .level = lvl}\n"
+        "#define LEVEL_UP_END {.move = LEVEL_UP_MOVE_END, .level = 0}\n\n"
+        "static const struct LevelUpMove sSyntheticLevelUpLearnset[] = {\n"
+        "    LEVEL_UP_MOVE( 1, MOVE_SYNTH_STATUS),\n"
+        "    LEVEL_UP_MOVE( 4, MOVE_SYNTH_PHYSICAL_LOW),\n"
+        "    LEVEL_UP_MOVE(12, MOVE_SYNTH_SPECIAL_MID),\n"
+        "    LEVEL_UP_MOVE(40, MOVE_SYNTH_PHYSICAL_HIGH),\n"
+        "    LEVEL_UP_END\n"
+        "};\n"
+    )
+    for generation in (7, 9):
+        (source / f"src/data/pokemon/level_up_learnsets/gen_{generation}.h").write_text(
+            learnset, encoding="utf-8"
+        )
+    move_info = "\n\n".join(
+        f"[{constant}] =\n{{\n"
+        f"    .effect = EFFECT_HIT,\n"
+        f"    .power = {values[0]},\n"
+        f"    .type = {values[3]},\n"
+        f"    .accuracy = {values[1]},\n"
+        f"    .pp = {values[2]},\n"
+        f"    .category = {values[4]},\n"
+        "},"
+        for constant, values in move_values.items()
+    )
+    (source / "src/data/moves_info.h").write_text(move_info + "\n", encoding="utf-8")
+    tm_moves = sorted(set(SYNTHETIC_MOVES) | move_config.protected_moves)
+    continuation = "\\"
+    (source / "include/constants/tms_hms.h").write_text(
+        f"#define FOREACH_TM(F) {continuation}\n"
+        + f" {continuation}\n".join(f"    F({move.removeprefix('MOVE_')})" for move in tm_moves)
+        + "\n",
+        encoding="utf-8",
+    )
+    learnables = {
+        str(row["constant"]).removeprefix("SPECIES_"): sorted(move_values) for row in species_rows
+    }
+    (source / "src/data/pokemon/all_learnables.json").write_text(
+        json.dumps(learnables, indent=2) + "\n", encoding="utf-8"
+    )
+    (source / "src/data/pokemon/special_movesets.json").write_text(
+        json.dumps(
+            {
+                "universalMoves": [],
+                "signatureTeachables": [],
+                "dedicatedTutors": {},
+                "extraTutors": ["MOVE_SYNTH_STATUS_ALT"],
+                "speciesTeachables": {},
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
     )
     (source / "include/constants/items.h").write_text(
         "enum {\n"

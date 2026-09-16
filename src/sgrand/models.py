@@ -16,6 +16,9 @@ class Species:
     bst: int
     categories: frozenset[str]
     evolutions: tuple[str, ...]
+    types: tuple[str, ...] = ()
+    attack: int = 0
+    special_attack: int = 0
 
     @property
     def is_special(self) -> bool:
@@ -39,6 +42,23 @@ class Item:
             and not self.important
             and any(start <= self.item_id <= end for start, end in OFFICIAL_CHEAT_ITEM_ID_RANGES)
         )
+
+
+@dataclass(frozen=True)
+class Move:
+    constant: str
+    power: int
+    accuracy: int
+    pp: int
+    move_type: str
+    category: str
+
+    @property
+    def is_offensive(self) -> bool:
+        return self.category in {
+            "DAMAGE_CATEGORY_PHYSICAL",
+            "DAMAGE_CATEGORY_SPECIAL",
+        }
 
 
 @dataclass(frozen=True)

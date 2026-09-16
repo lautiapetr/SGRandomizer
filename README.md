@@ -5,10 +5,11 @@ SGRand is a deterministic, source-level randomizer for Pokémon SoulGold
 synthetic test fixtures. It does not contain or redistribute SoulGold source,
 graphics, ROMs, build products or other game assets.
 
-Phase 1 randomizes the main wild-encounter table, the nine starter choices,
-scripted static/gift Pokémon, item balls, hidden items and scripted item gifts.
-Legendary, Mythical, Ultra Beast and Paradox species remain unchanged. Moves,
-abilities, innate abilities and trainer parties have extension interfaces but
+The engine randomizes the main wild-encounter table, the nine starter choices,
+scripted static/gift Pokémon, item balls, hidden items, scripted item gifts and
+three independent move domains: level-up learnsets, TM/tutor compatibility and
+basic move properties. Legendary, Mythical, Ultra Beast and Paradox species
+remain unchanged. Move effects, abilities, innate abilities and trainer parties
 are intentionally unchanged.
 
 ## Requirements and installation
@@ -40,6 +41,16 @@ transaction:
 ```bash
 sgrand apply --source /path/to/soulgold --seed 12345
 ```
+
+Both commands use the embedded, versioned `moves-v1.json` profile. Supply a
+validated custom profile when tuning percentages or exclusions:
+
+```bash
+sgrand preview --source /path/to/soulgold --seed 12345 \
+  --moves-config /path/to/moves-v1-custom.json
+```
+
+See [move configuration](docs/moves-config.md) for every field and invariant.
 
 The default manifest is
 `/path/to/soulgold/soulgold-randomizer-manifest.json`. The tool refuses to

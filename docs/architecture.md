@@ -21,6 +21,8 @@ synthetic fixtures and exported source trees.
 | `sgrand.source` | Layout/tag validation and parsers for species and item metadata. |
 | `sgrand.species` | Safe species filtering, evolution graphs, family matching and starters. |
 | `sgrand.transforms` | Pure text/JSON transformations for starters, wild data, scripts and items. |
+| `sgrand.move_config` | Versioned move-profile loading and strict schema/range validation. |
+| `sgrand.moves` | Separate property, level-up and TM/tutor compatibility passes. |
 | `sgrand.rng` | Stable seed parsing and named independent PRNG streams. |
 | `sgrand.transaction` | Preflight, staging, atomic per-file replacement and rollback. |
 | `sgrand.interfaces` | Protocols for future move, ability, innate and trainer passes. |
@@ -64,6 +66,9 @@ The user seed is normalized to an integer. Each subsystem derives a separate
 - `starters`
 - `map-items`
 - `scripted-items`
+- `move-properties`
+- `move-level-up-learnsets`
+- `move-tm-tutor-compatibility`
 
 Creating, removing or consuming values in one stream cannot shift another
 subsystem. Stream names are part of the manifest and should be treated as a
@@ -72,11 +77,19 @@ reproducibility API: renaming one is a deliberate output-format change.
 ## Extension design
 
 `RandomizationPass` requires a named pass to return planned writes and audit
-records without mutating its source. `MovesPass`, `AbilitiesPass`,
-`InnatesPass` and `TrainersPass` refine that contract as reserved extension
-points. Future implementations should receive their own named RNG streams,
-validate all referential constraints before returning, and let the engine merge
-their writes into the same transaction.
+records without mutating its source. `LevelUpLearnsetsPass`,
+`MoveCompatibilityPass` and `MovePropertiesPass` describe the implemented move
+boundaries. `AbilitiesPass`, `InnatesPass` and `TrainersPass` remain reserved
+extension points. Future implementations should receive their own named RNG
+streams, validate all referential constraints before returning, and let the
+engine merge their writes into the same transaction.
+
+Move selection uses the canonical metadata snapshot loaded before any writes.
+This keeps the learnset stream independent from property RNG consumption.
+Property randomization changes only `.power`, `.accuracy`, `.pp`, `.type` and
+the physical/special category of ordinary damaging moves. It never changes
+`.effect`, priority, targets, flags, animation, zero-power status moves or
+variable/fixed-power moves represented by power 0/1.
 
 If two passes propose the same path, the future composition layer must merge
 their transformations explicitly; a transaction rejects duplicate targets.

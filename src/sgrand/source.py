@@ -10,13 +10,19 @@ from typing import cast
 
 from .constants import SUPPORTED_TAG
 from .errors import RandomizerError
-from .models import Item, Species
+from .models import Item, Move, Species
 
 REQUIRED_PATHS = (
     "docs/data/romhack-docs.json",
     "src/data/wild_encounters.json",
     "src/data/items.h",
+    "src/data/moves_info.h",
+    "src/data/pokemon/all_learnables.json",
+    "src/data/pokemon/special_movesets.json",
+    "src/data/pokemon/level_up_learnsets/gen_7.h",
+    "src/data/pokemon/level_up_learnsets/gen_9.h",
     "include/constants/items.h",
+    "include/constants/tms_hms.h",
     "src/ui_birch_case.c",
     "data/maps",
 )
@@ -95,6 +101,8 @@ def load_species(source: Path) -> dict[str, Species]:
                 if isinstance(raw_evolution, dict) and isinstance(raw_evolution.get("target"), str):
                     evolutions.append(cast(str, raw_evolution["target"]))
         categories = frozenset(_string_list(entry.get("categories")))
+        raw_stats = entry.get("stats")
+        stats = cast(dict[str, object], raw_stats) if isinstance(raw_stats, dict) else {}
         result[constant] = Species(
             constant=constant,
             name=str(entry.get("name") or constant),
@@ -102,6 +110,9 @@ def load_species(source: Path) -> dict[str, Species]:
             bst=_integer(entry.get("bst")),
             categories=categories,
             evolutions=tuple(evolutions),
+            types=_string_list(entry.get("types")),
+            attack=_integer(stats.get("atk")),
+            special_attack=_integer(stats.get("spa")),
         )
 
     block_re = re.compile(r"\[(SPECIES_[A-Z0-9_]+)\]\s*=\s*\{(.*?)(?=\n\s*\[SPECIES_|\Z)", re.S)
@@ -120,9 +131,49 @@ def load_species(source: Path) -> dict[str, Species]:
                 bst=old.bst,
                 categories=old.categories | {"ultra_beast"},
                 evolutions=old.evolutions,
+                types=old.types,
+                attack=old.attack,
+                special_attack=old.special_attack,
             )
     if not result:
         raise RandomizerError(f"No species were found in {docs_path}")
+    return result
+
+
+def load_moves(source: Path) -> dict[str, Move]:
+    docs_path = source / "docs/data/romhack-docs.json"
+    try:
+        document = json.loads(docs_path.read_text(encoding="utf-8"))
+        raw_moves = document["moves"]
+    except (OSError, json.JSONDecodeError, KeyError, TypeError) as exc:
+        raise RandomizerError(f"Cannot read move metadata from {docs_path}: {exc}") from exc
+    if not isinstance(raw_moves, dict):
+        raise RandomizerError(f"Expected a move object in {docs_path}")
+
+    result: dict[str, Move] = {}
+    for key, value in raw_moves.items():
+        if not isinstance(key, str) or not isinstance(value, dict):
+            raise RandomizerError(f"Invalid move entry in {docs_path}")
+        entry = cast(dict[str, object], value)
+        constant = entry.get("constant", key)
+        move_type = entry.get("type")
+        category = entry.get("category")
+        if (
+            not isinstance(constant, str)
+            or not isinstance(move_type, str)
+            or not isinstance(category, str)
+        ):
+            raise RandomizerError(f"Move {key} has invalid metadata in {docs_path}")
+        result[constant] = Move(
+            constant=constant,
+            power=_integer(entry.get("power")),
+            accuracy=_integer(entry.get("accuracy")),
+            pp=_integer(entry.get("pp")),
+            move_type=move_type,
+            category=category,
+        )
+    if not result:
+        raise RandomizerError(f"No moves were found in {docs_path}")
     return result
 
 

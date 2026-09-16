@@ -4,4 +4,4 @@ from .engine import Randomizer, RunMode
 from .errors import RandomizerError
 
 __all__ = ["Randomizer", "RandomizerError", "RunMode"]
-__version__ = "0.2.0"
+__version__ = "0.3.0"

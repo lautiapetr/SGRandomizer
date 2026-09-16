@@ -22,6 +22,11 @@ def parser() -> argparse.ArgumentParser:
         command = commands.add_parser(name, help=help_text)
         command.add_argument("--source", type=Path, required=True, help="SoulGold source checkout")
         command.add_argument("--seed", required=True, help="text or integer seed")
+        command.add_argument(
+            "--moves-config",
+            type=Path,
+            help="versioned move-randomization JSON (default: embedded moves-v1.json)",
+        )
         if name == "apply":
             command.add_argument(
                 "--manifest", type=Path, help=f"report path (default: SOURCE/{DEFAULT_MANIFEST})"
@@ -50,6 +55,13 @@ def _print_report(report: dict[str, Any], mode: RunMode, manifest: Path | None) 
         print(f"Manifest: {manifest}")
     else:
         print("No files were written. Use the apply command to write this seed.")
+    move_counts = report["counts"]
+    print(
+        "Moves: "
+        f"{move_counts['level_up_slots_changed']} level-up slots, "
+        f"{move_counts['compatibility_species_changed']} compatibility sets, "
+        f"{move_counts['move_properties_changed']} property records"
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -65,6 +77,7 @@ def main(argv: list[str] | None = None) -> int:
             mode,
             manifest,
             bool(getattr(args, "force", False)),
+            args.moves_config,
         )
     except RandomizerError as exc:
         print(f"error: {exc}", file=sys.stderr)
