@@ -1,0 +1,70 @@
+=== TRAINER_SYNTH_REGULAR ===
+Name: Regular
+Class: Youngster
+Pic: Youngster
+Gender: Male
+Music: Male
+Double Battle: No
+AI: Basic Trainer
+
+SPECIES_SYNTH_J0
+Level: 12
+Ability: ABILITY_SYNTH_LOW
+IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+- MOVE_ASTRAL_BARRAGE
+- MOVE_FLY
+
+SPECIES_SYNTH_D0
+Level: 13
+IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+
+=== TRAINER_SYNTH_LEADER ===
+Name: Leader
+Class: Leader
+Pic: Leader
+Gender: Female
+Music: Female
+Double Battle: Yes
+AI: Smart Trainer
+
+SPECIES_SYNTH_I1 @ ITEM_SYNTH_ALPHA
+Level: 30
+Ability: ABILITY_SYNTH_LOW
+IVs: 20 HP / 20 Atk / 20 Def / 20 SpA / 20 SpD / 20 Spe
+- MOVE_VOLT_TACKLE
+- MOVE_GLACIAL_LANCE
+
+SPECIES_SYNTH_A1 @ ITEM_SYNTH_ALPHA
+Level: 30
+IVs: 20 HP / 20 Atk / 20 Def / 20 SpA / 20 SpD / 20 Spe
+- MOVE_PSYCHO_BOOST
+- MOVE_MOONGEIST_BEAM
+
+=== TRAINER_SYNTH_RIVAL ===
+Name: {RIVAL}
+Class: Rival
+Pic: Rival
+Gender: Male
+Music: Rival
+Double Battle: No
+AI: Smart Trainer
+
+SPECIES_SYNTH_A1 @ ITEM_SYNTH_ALPHA
+Level: 28
+IVs: 15 HP / 15 Atk / 15 Def / 15 SpA / 15 SpD / 15 Spe
+- MOVE_ASSIST
+
+=== TRAINER_SYNTH_BOSS ===
+Name: Boss
+Class: Champion
+Pic: Champion
+Gender: Male
+Music: Champion
+Double Battle: No
+AI: Smart Trainer
+
+SPECIES_SYNTH_J2 @ ITEM_SYNTH_ALPHA
+Level: 60
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+- MOVE_TRANSFORM
+- MOVE_DIVE

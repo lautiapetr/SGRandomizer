@@ -1,4 +1,4 @@
-"""Application service that composes all phase-1 passes."""
+"""Application service that composes every randomization pass."""
 
 from __future__ import annotations
 
@@ -31,6 +31,8 @@ from .source import (
     validate_source,
 )
 from .species import build_species_mapping, choose_starters
+from .trainer_config import load_trainer_config, validate_trainer_references
+from .trainers import transform_trainers
 from .transaction import FileTransaction
 from .transforms import (
     replace_starters,
@@ -80,6 +82,8 @@ class Randomizer:
         move_config_path: Path | None = None,
         ability_config_path: Path | None = None,
         ability_profile: str | None = None,
+        trainer_config_path: Path | None = None,
+        trainer_profile: str | None = None,
     ) -> Plan:
         source = source.resolve()
         validate_source(source)
@@ -98,12 +102,14 @@ class Randomizer:
         ability_config = load_ability_config(ability_config_path, ability_profile)
         form_locked_abilities = discover_form_locked_abilities(source)
         validate_ability_references(ability_config, abilities, form_locked_abilities)
+        trainer_config = load_trainer_config(trainer_config_path, trainer_profile)
         event_moves = discover_event_moves(source, moves)
         protected_moves = move_config.protected_moves | event_moves
         wild_mapping = build_species_mapping(species, streams.stream("wild-species"))
         static_mapping = build_species_mapping(species, streams.stream("static-gift-species"))
         starters = choose_starters(species, streams.stream("starters"))
         items = parse_items(source)
+        validate_trainer_references(trainer_config, species, moves, items)
         item_pool = sorted(constant for constant, item in items.items() if item.is_randomizable)
         if not item_pool:
             raise RandomizerError("No randomizable items were found")
@@ -176,6 +182,22 @@ class Randomizer:
         )
         pending.update(ability_output.files)
 
+        trainer_output = transform_trainers(
+            source,
+            species,
+            moves,
+            items,
+            ability_output.ability_assignments,
+            starters,
+            trainer_config,
+            streams.stream("trainers-species"),
+            streams.stream("trainers-levels-and-sizes"),
+            streams.stream("trainers-themes"),
+            streams.stream("trainers-moves"),
+            streams.stream("trainers-items"),
+        )
+        pending[source / "src/data/trainers.party"] = trainer_output.text
+
         planned_writes = [
             planned
             for path, updated in sorted(pending.items())
@@ -219,10 +241,15 @@ class Randomizer:
                 "move-tm-tutor-compatibility",
                 "species-abilities",
                 "species-innates",
+                "trainers-species",
+                "trainers-levels-and-sizes",
+                "trainers-themes",
+                "trainers-moves",
+                "trainers-items",
             ],
             "rules": {
                 "wild_pokemon": "random_similar_strength_follow_evolutions",
-                "trainers": "vanilla",
+                "trainers": trainer_config.profile.name,
                 "starters": "nine_distinct_base_species_three_stage_lines",
                 "static_pokemon": "random_similar_strength_follow_evolutions",
                 "gift_pokemon": "random_similar_strength_follow_evolutions",
@@ -248,6 +275,8 @@ class Randomizer:
                 "move_properties_changed": property_output.report["moves"],
                 "normal_abilities_species_changed": ability_output.report["normal_species_changed"],
                 "innates_species_changed": ability_output.report["innate_species_changed"],
+                "trainer_species_changed": trainer_output.report["species_changed"],
+                "trainers_changed": trainer_output.report["trainers_changed"],
             },
             "move_config": {
                 "schema_version": move_config.schema_version,
@@ -271,6 +300,16 @@ class Randomizer:
                 "special_abilities": sorted(ability_config.special_abilities),
             },
             "abilities": ability_output.report,
+            "trainer_config": {
+                "schema_version": trainer_config.schema_version,
+                "profile": trainer_config.profile.name,
+                "sha256": trainer_config.content_sha256,
+                "source": trainer_config.source_label,
+                "blacklist_species": sorted(trainer_config.blacklist_species),
+                "blacklist_moves": sorted(trainer_config.blacklist_moves),
+                "blacklist_items": sorted(trainer_config.blacklist_items),
+            },
+            "trainers": trainer_output.report,
             "starters": starter_changes,
             "species_mapping_used": used_mappings,
             "wild_changes": wild_changes,
@@ -290,6 +329,8 @@ class Randomizer:
         move_config_path: Path | None = None,
         ability_config_path: Path | None = None,
         ability_profile: str | None = None,
+        trainer_config_path: Path | None = None,
+        trainer_profile: str | None = None,
     ) -> dict[str, Any]:
         plan = self.plan(
             source,
@@ -300,6 +341,8 @@ class Randomizer:
             move_config_path,
             ability_config_path,
             ability_profile,
+            trainer_config_path,
+            trainer_profile,
         )
         if mode is RunMode.APPLY:
             if any(write.path == plan.manifest_path for write in plan.writes):

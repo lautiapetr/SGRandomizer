@@ -25,9 +25,11 @@ synthetic fixtures and exported source trees.
 | `sgrand.moves` | Separate property, level-up and TM/tutor compatibility passes. |
 | `sgrand.ability_config` | Strict versioned profiles, power bands and immutable protection lists. |
 | `sgrand.abilities` | Resolves real species-info storage and plans separate normal/innate assignments. |
+| `sgrand.trainer_config` | Strict category profiles for team construction and legality policy. |
+| `sgrand.trainers` | Parses and rewrites canonical competitive trainer parties. |
 | `sgrand.rng` | Stable seed parsing and named independent PRNG streams. |
 | `sgrand.transaction` | Preflight, staging, atomic per-file replacement and rollback. |
-| `sgrand.interfaces` | Protocols for implemented passes and the future trainer pass. |
+| `sgrand.interfaces` | Protocols for the implemented move, ability, innate and trainer passes. |
 
 The dependency direction is CLI → engine → parsers/transforms → immutable
 models. Parsers and transforms do not write. This makes preview the natural
@@ -73,6 +75,11 @@ The user seed is normalized to an integer. Each subsystem derives a separate
 - `move-tm-tutor-compatibility`
 - `species-abilities`
 - `species-innates`
+- `trainers-species`
+- `trainers-levels-and-sizes`
+- `trainers-themes`
+- `trainers-moves`
+- `trainers-items`
 
 Creating, removing or consuming values in one stream cannot shift another
 subsystem. Stream names are part of the manifest and should be treated as a
@@ -86,7 +93,8 @@ records without mutating its source. `LevelUpLearnsetsPass`,
 boundaries. `AbilitiesPass` and `InnatesPass` are implemented as separate
 logical passes. Because both fields live in the same species-info records,
 their plans are validated and rendered into one write per family header.
-`TrainersPass` remains the reserved extension point.
+`TrainersPass` consumes the final normal-ability assignment and the selected
+starters, then produces one validated write for `trainers.party`.
 
 Ability metadata comes from the authoritative `gAbilitiesInfo` designated
 initializers; omitted ratings use C's implicit zero. Effective species arrays
@@ -113,6 +121,13 @@ before building the transaction; a transaction rejects duplicate targets.
 The abilities subsystem already does this for the normal and innate passes,
 producing one final write per species-info file. This prevents order-dependent
 silent overwrites.
+
+Trainer parsing treats repeated Normal/Hard IDs as separate sections and
+changes only owned competitive fields. Explicit moves are drawn from the real
+`all_learnables.json`; absent move lists retain SoulGold's runtime legal move
+generation. Rival starter overrides happen before ordinary BST matching.
+Rendered parties retain their section count and are compiled by `trainerproc`
+as part of the normal build.
 
 ## Compatibility strategy
 

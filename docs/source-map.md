@@ -24,7 +24,7 @@ copied into this repository.
 | TM/tutor compatibility | `src/data/pokemon/all_learnables.json`; `src/data/pokemon/special_movesets.json`; `include/constants/tms_hms.h`; `tools/learnset_helpers/make_teachables.py`; species `.teachableLearnset` pointers | `all_learnables.json` is the maintained compatibility input. The build generates `src/data/pokemon/teachable_learnsets.h`, combining legal moves, TM/HM lists, tutors, teaching types and special overrides. The generated header is absent in a clean tree until needed. | Implemented by editing only `all_learnables.json`. TM and tutor decisions have separate configurable rates with STAB/category bonuses. Universal, signature, protected and special override behavior remains canonical; the generated header is never edited. |
 | Abilities | `include/constants/abilities.h`; `src/data/abilities.h`; `.abilities = {...}` in species-info family files; `src/data/pokemon/form_change_tables.h` | Ability IDs, global `gAbilitiesInfo` behavior/metadata, normal/secondary/hidden slots and ability predicates used by form changes. Some entries use conditional constants, aliases, shared macros or parameterized macros. | Implemented. Ratings are read from the real definitions (implicit zero included), assignments use an independent stream and configuration controls rating power, duplicates, evolution following, special abilities and blacklists. Form/species-locked mechanics are preserved. |
 | Innate abilities | `.innates = {...}` in `src/data/pokemon/species_info/gen_*_families.h` | Per-species arrays using the same `ABILITY_*` namespace. Counts range by species/evolution and some arrays are supplied by shared macros. | Implemented with its own RNG stream. Vanilla or fixed counts, duplicate policy, rating bands and Follow Evolutions are configurable. The final normal set is always excluded, and form-protected normal/innate pairs remain unchanged. |
-| Trainers and parties | `src/data/trainers.party`; `include/constants/trainers.h`; `tools/trainerproc`; `trainer_rules.mk` | The canonical party file uses trainer blocks (`=== TRAINER_* ===`) and Pokémon Showdown-like records for species, item, level, ability, IVs/EVs and moves. `trainerproc` converts `.party` to generated `src/data/trainers.h`; `src/data.c` includes it. | Interface only; no edits. |
+| Trainers and parties | `src/data/trainers.party`; `include/constants/trainers.h`; `tools/trainerproc`; `trainer_rules.mk`; `src/data/pokemon/all_learnables.json` | The canonical party file uses trainer blocks (`=== TRAINER_* ===`) and Pokémon Showdown-like records for species, item, level, ability, IVs/EVs and moves. Repeated IDs encode Normal/Hard definitions. `trainerproc` converts `.party` to generated `src/data/trainers.h`; `src/data.c` includes it. | Implemented. Independent regular/leader/rival/boss rules cover similar strength, level and party sizing, themes, legal moves, equipped items, special species and double synergy. Silver's three branches follow the randomized starter lines. |
 | Other battle parties | `src/data/battle_partners.party`; `src/data/battle_frontier/*.h`; `src/data/debug_trainers.party`; `test/battle/*.party` | Additional `.party` sources and dedicated C tables for partners, facilities, debug and tests. | Audited, outside the trainer phase-1 adapter. |
 
 ## Prototype audit
@@ -77,6 +77,13 @@ constant aliases, shared macros and conservative parameterized-macro
 protection. Vanilla has no normal/innate overlap and no duplicate innate arrays;
 duplicate normal slots are retained only for protected species or when the
 selected profile permits them.
+
+The trainer audit found 630 competitive sections, 64 double-battle sections
+and 1,948 party entries. The normalized documentation metadata resolves 1,947
+entries; the source-only Cherrim form is retained literally. Twenty-seven
+Silver starter slots are bound to their randomized evolution stages. Normal
+and Hard variants are transformed independently without changing trainer IDs,
+class, AI, difficulty or other battle metadata.
 
 For every apply, the manifest records the exact supported tag, normalized seed,
 named RNG streams, change counts and before/after SHA-256 hashes. The tool does

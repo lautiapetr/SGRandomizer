@@ -40,4 +40,4 @@ class InnatesPass(RandomizationPass, Protocol):
 
 
 class TrainersPass(RandomizationPass, Protocol):
-    """Reserved contract for trainer and party randomization."""
+    """Contract for competitive-syntax trainer-party randomization."""

@@ -10,8 +10,10 @@ scripted static/gift Pokémon, item balls, hidden items, scripted item gifts and
 three independent move domains: level-up learnsets, TM/tutor compatibility and
 basic move properties. It also randomizes normal/hidden abilities and innate
 abilities with separate RNG streams, evolution-aware policies and hard form
-protections. Legendary, Mythical, Ultra Beast and Paradox species remain
-unchanged in species-placement passes. Move effects and trainer parties are
+protections. Trainer parties are randomized from their competitive source with
+category-specific strength, level, size, theme, legality, item, legendary and
+double-battle rules. Legendary, Mythical, Ultra Beast and Paradox species
+remain unchanged in overworld species-placement passes. Move effects remain
 intentionally unchanged.
 
 ## Requirements and installation
@@ -54,11 +56,16 @@ sgrand preview --source /path/to/soulgold --seed 12345 \
 sgrand preview --source /path/to/soulgold --seed 12345 \
   --abilities-config /path/to/abilities-v1-custom.json \
   --ability-profile Chaos
+
+sgrand preview --source /path/to/soulgold --seed 12345 \
+  --trainers-config /path/to/trainers-v1-custom.json \
+  --trainer-profile Balanced
 ```
 
 See [move configuration](docs/moves-config.md) and
-[ability configuration](docs/abilities-config.md) for every field and
-invariant. `Balanced` is the default ability profile; `Chaos` is opt-in.
+[ability configuration](docs/abilities-config.md), and
+[trainer configuration](docs/trainers-config.md) for every field and
+invariant. `Balanced` is the default profile; `Chaos` is opt-in.
 
 The default manifest is
 `/path/to/soulgold/soulgold-randomizer-manifest.json`. The tool refuses to
@@ -92,7 +99,9 @@ clean:
 
 ```bash
 git clone --shared .work/soulgold-v1.1.4 /tmp/sgrand-build
-sgrand apply --source /tmp/sgrand-build --seed phase-1-build
+sgrand apply --source /tmp/sgrand-build --seed trainer-build \
+  --trainer-profile Balanced
+make -C /tmp/sgrand-build src/data/trainers.h
 make -C /tmp/sgrand-build -j2
 ```
 

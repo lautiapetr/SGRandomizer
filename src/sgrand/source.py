@@ -16,6 +16,7 @@ REQUIRED_PATHS = (
     "docs/data/romhack-docs.json",
     "src/data/wild_encounters.json",
     "src/data/items.h",
+    "src/data/trainers.party",
     "src/data/moves_info.h",
     "src/data/abilities.h",
     "src/data/pokemon/form_change_tables.h",

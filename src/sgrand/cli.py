@@ -36,6 +36,15 @@ def parser() -> argparse.ArgumentParser:
             "--ability-profile",
             help="ability profile name (default: configuration default, Balanced)",
         )
+        command.add_argument(
+            "--trainers-config",
+            type=Path,
+            help="versioned trainer JSON (default: embedded trainers-v1.json)",
+        )
+        command.add_argument(
+            "--trainer-profile",
+            help="trainer profile name (default: configuration default, Balanced)",
+        )
         if name == "apply":
             command.add_argument(
                 "--manifest", type=Path, help=f"report path (default: SOURCE/{DEFAULT_MANIFEST})"
@@ -66,6 +75,12 @@ def _print_report(report: dict[str, Any], mode: RunMode, manifest: Path | None) 
         f"{counts['innates_species_changed']} innate sets "
         f"({report['ability_config']['profile']})"
     )
+    print(
+        "Trainers: "
+        f"{counts['trainers_changed']} teams, "
+        f"{counts['trainer_species_changed']} species slots "
+        f"({report['trainer_config']['profile']})"
+    )
     if mode is RunMode.APPLY:
         print(f"Manifest: {manifest}")
     else:
@@ -95,6 +110,8 @@ def main(argv: list[str] | None = None) -> int:
             args.moves_config,
             args.abilities_config,
             args.ability_profile,
+            args.trainers_config,
+            args.trainer_profile,
         )
     except RandomizerError as exc:
         print(f"error: {exc}", file=sys.stderr)
