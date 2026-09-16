@@ -52,3 +52,8 @@ python scripts/verify_bundle.py dist/SGRand
 
 The workflow deliberately has read-only repository permissions and never
 downloads or builds SoulGold itself.
+
+The Ubuntu jobs install `libegl1`, `libgl1`, `libxkbcommon-x11-0` and
+`libxcb-cursor0` before importing PySide6. Setting Qt to the offscreen platform
+is not sufficient by itself because QtGui resolves EGL while the Python module
+is imported, before a platform plugin is selected.
