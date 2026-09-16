@@ -22,8 +22,8 @@ copied into this repository.
 | Moves | `include/constants/moves.h`; `src/data/moves_info.h` | Move IDs/aliases and designated `gMovesInfo` entries with power, accuracy, PP, type, category, effects and flags. | Implemented for basic fields only: power, accuracy, PP, type and physical/special category. Effects, priority, target, flags, names, descriptions and animation remain unchanged. Power-0/1, excluded, signature, progression and event-referenced moves retain protected semantics. |
 | Level-up and egg learnsets | `src/data/pokemon/level_up_learnsets/gen_*.h`; `src/data/pokemon/egg_moves.h`; pointers in species-info entries | C arrays of `LEVEL_UP_MOVE(level, MOVE_*)` and terminated `MOVE_*` arrays. `include/config/pokemon.h` selects legacy/latest behavior. v.1.1.4 builds `generated_legacy_level_up_learnsets.h` from `gen_9.h` plus missing `gen_7.h` entries. | Implemented on the two canonical inputs active for this checkout, `gen_7.h` and `gen_9.h`. Egg moves remain unchanged. Selection enforces configured progressive power, offense share, STAB, physical/special preference, accuracy floor and early attack. Signature/excluded/event moves are preserved. |
 | TM/tutor compatibility | `src/data/pokemon/all_learnables.json`; `src/data/pokemon/special_movesets.json`; `include/constants/tms_hms.h`; `tools/learnset_helpers/make_teachables.py`; species `.teachableLearnset` pointers | `all_learnables.json` is the maintained compatibility input. The build generates `src/data/pokemon/teachable_learnsets.h`, combining legal moves, TM/HM lists, tutors, teaching types and special overrides. The generated header is absent in a clean tree until needed. | Implemented by editing only `all_learnables.json`. TM and tutor decisions have separate configurable rates with STAB/category bonuses. Universal, signature, protected and special override behavior remains canonical; the generated header is never edited. |
-| Abilities | `include/constants/abilities.h`; `src/data/abilities.h`; `.abilities = {...}` in species-info family files | Ability IDs, global `gAbilitiesInfo` behavior/metadata, and three per-species slots (regular/secondary/hidden conventions). | Interface only; no edits. |
-| Innate abilities | `.innates = {...}` in `src/data/pokemon/species_info/gen_*_families.h` | Per-species arrays using the same `ABILITY_*` namespace. They are separate from selectable `.abilities` slots but depend on the same global definitions. | Interface only; no edits. |
+| Abilities | `include/constants/abilities.h`; `src/data/abilities.h`; `.abilities = {...}` in species-info family files; `src/data/pokemon/form_change_tables.h` | Ability IDs, global `gAbilitiesInfo` behavior/metadata, normal/secondary/hidden slots and ability predicates used by form changes. Some entries use conditional constants, aliases, shared macros or parameterized macros. | Implemented. Ratings are read from the real definitions (implicit zero included), assignments use an independent stream and configuration controls rating power, duplicates, evolution following, special abilities and blacklists. Form/species-locked mechanics are preserved. |
+| Innate abilities | `.innates = {...}` in `src/data/pokemon/species_info/gen_*_families.h` | Per-species arrays using the same `ABILITY_*` namespace. Counts range by species/evolution and some arrays are supplied by shared macros. | Implemented with its own RNG stream. Vanilla or fixed counts, duplicate policy, rating bands and Follow Evolutions are configurable. The final normal set is always excluded, and form-protected normal/innate pairs remain unchanged. |
 | Trainers and parties | `src/data/trainers.party`; `include/constants/trainers.h`; `tools/trainerproc`; `trainer_rules.mk` | The canonical party file uses trainer blocks (`=== TRAINER_* ===`) and Pokémon Showdown-like records for species, item, level, ability, IVs/EVs and moves. `trainerproc` converts `.party` to generated `src/data/trainers.h`; `src/data.c` includes it. | Interface only; no edits. |
 | Other battle parties | `src/data/battle_partners.party`; `src/data/battle_frontier/*.h`; `src/data/debug_trainers.party`; `test/battle/*.party` | Additional `.party` sources and dedicated C tables for partners, facilities, debug and tests. | Audited, outside the trainer phase-1 adapter. |
 
@@ -68,6 +68,15 @@ missing legacy entries from `gen_7.h`; replacements are coordinated between
 both inputs so the generator retains its deduplication and fewer-than-50-entry
 invariant. Seventy-three valid move constants referenced by event scripts are
 discovered dynamically and protected in the audited checkout.
+
+The ability audit found 532 designated `gAbilitiesInfo` records; 531 specify
+`.aiRating` and Libero intentionally receives the C default of zero. The
+effective documentation projection maps 959 enabled canonical species back to
+nine family headers. The parser handles literal and conditional arrays,
+constant aliases, shared macros and conservative parameterized-macro
+protection. Vanilla has no normal/innate overlap and no duplicate innate arrays;
+duplicate normal slots are retained only for protected species or when the
+selected profile permits them.
 
 For every apply, the manifest records the exact supported tag, normalized seed,
 named RNG streams, change counts and before/after SHA-256 hashes. The tool does

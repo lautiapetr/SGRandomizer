@@ -9,6 +9,8 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
+from .abilities import transform_species_abilities
+from .ability_config import load_ability_config, validate_ability_references
 from .constants import DEFAULT_MANIFEST, SUPPORTED_TAG
 from .errors import RandomizerError
 from .models import PlannedWrite
@@ -20,7 +22,14 @@ from .moves import (
     transform_move_properties,
 )
 from .rng import RngStreams
-from .source import load_moves, load_species, parse_items, validate_source
+from .source import (
+    discover_form_locked_abilities,
+    load_abilities,
+    load_moves,
+    load_species,
+    parse_items,
+    validate_source,
+)
 from .species import build_species_mapping, choose_starters
 from .transaction import FileTransaction
 from .transforms import (
@@ -69,6 +78,8 @@ class Randomizer:
         manifest_path: Path | None = None,
         force: bool = False,
         move_config_path: Path | None = None,
+        ability_config_path: Path | None = None,
+        ability_profile: str | None = None,
     ) -> Plan:
         source = source.resolve()
         validate_source(source)
@@ -81,8 +92,12 @@ class Randomizer:
         streams = RngStreams(seed_text)
         species = load_species(source)
         moves = load_moves(source)
+        abilities = load_abilities(source)
         move_config = load_move_config(move_config_path)
         validate_move_references(move_config, moves)
+        ability_config = load_ability_config(ability_config_path, ability_profile)
+        form_locked_abilities = discover_form_locked_abilities(source)
+        validate_ability_references(ability_config, abilities, form_locked_abilities)
         event_moves = discover_event_moves(source, moves)
         protected_moves = move_config.protected_moves | event_moves
         wild_mapping = build_species_mapping(species, streams.stream("wild-species"))
@@ -150,6 +165,17 @@ class Randomizer:
         )
         pending.update(compatibility_output.files)
 
+        ability_output = transform_species_abilities(
+            source,
+            species,
+            abilities,
+            ability_config,
+            form_locked_abilities,
+            streams.stream("species-abilities"),
+            streams.stream("species-innates"),
+        )
+        pending.update(ability_output.files)
+
         planned_writes = [
             planned
             for path, updated in sorted(pending.items())
@@ -191,6 +217,8 @@ class Randomizer:
                 "move-properties",
                 "move-level-up-learnsets",
                 "move-tm-tutor-compatibility",
+                "species-abilities",
+                "species-innates",
             ],
             "rules": {
                 "wild_pokemon": "random_similar_strength_follow_evolutions",
@@ -200,7 +228,8 @@ class Randomizer:
                 "gift_pokemon": "random_similar_strength_follow_evolutions",
                 "special_pokemon": "legendary_mythical_ultra_beast_paradox_vanilla",
                 "move_effects": "vanilla",
-                "abilities_innates": "vanilla",
+                "abilities": ability_config.profile.name,
+                "innates": ability_config.profile.name,
                 "field_hidden_gift_items": "random",
                 "early_lab_poke_balls": "vanilla_10",
                 "key_story_hm_items": "vanilla",
@@ -217,6 +246,8 @@ class Randomizer:
                 "level_up_slots_changed": learnset_output.report["slots"],
                 "compatibility_species_changed": compatibility_output.report["species"],
                 "move_properties_changed": property_output.report["moves"],
+                "normal_abilities_species_changed": ability_output.report["normal_species_changed"],
+                "innates_species_changed": ability_output.report["innate_species_changed"],
             },
             "move_config": {
                 "schema_version": move_config.schema_version,
@@ -231,6 +262,15 @@ class Randomizer:
                 "tm_tutor_compatibility": compatibility_output.report,
                 "properties": property_output.report,
             },
+            "ability_config": {
+                "schema_version": ability_config.schema_version,
+                "profile": ability_config.profile.name,
+                "sha256": ability_config.content_sha256,
+                "source": ability_config.source_label,
+                "blacklist": sorted(ability_config.blacklist),
+                "special_abilities": sorted(ability_config.special_abilities),
+            },
+            "abilities": ability_output.report,
             "starters": starter_changes,
             "species_mapping_used": used_mappings,
             "wild_changes": wild_changes,
@@ -248,8 +288,19 @@ class Randomizer:
         manifest_path: Path | None = None,
         force: bool = False,
         move_config_path: Path | None = None,
+        ability_config_path: Path | None = None,
+        ability_profile: str | None = None,
     ) -> dict[str, Any]:
-        plan = self.plan(source, seed_text, mode, manifest_path, force, move_config_path)
+        plan = self.plan(
+            source,
+            seed_text,
+            mode,
+            manifest_path,
+            force,
+            move_config_path,
+            ability_config_path,
+            ability_profile,
+        )
         if mode is RunMode.APPLY:
             if any(write.path == plan.manifest_path for write in plan.writes):
                 raise RandomizerError("Manifest path collides with a randomized source file")

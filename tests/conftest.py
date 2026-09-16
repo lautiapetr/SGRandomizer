@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from sgrand.ability_config import load_ability_config
 from sgrand.move_config import load_move_config
 
 SYNTHETIC_MOVES = {
@@ -38,6 +39,12 @@ def _species_rows() -> list[dict[str, object]]:
                     "evolutions": evolutions,
                     "types": ["TYPE_GRASS", "TYPE_NORMAL"],
                     "stats": {"atk": 60 + stage * 10, "spa": 50 + stage * 10},
+                    "abilities": ["ABILITY_SYNTH_LOW", "ABILITY_SYNTH_MID"],
+                    "innates": [
+                        "ABILITY_SYNTH_INNATE_A",
+                        "ABILITY_SYNTH_INNATE_B",
+                        "ABILITY_SYNTH_INNATE_C",
+                    ][: stage + 1],
                 }
             )
             dex += 1
@@ -52,6 +59,8 @@ def _species_rows() -> list[dict[str, object]]:
                 "evolutions": [],
                 "types": ["TYPE_PSYCHIC"],
                 "stats": {"atk": 100, "spa": 120},
+                "abilities": ["ABILITY_SYNTH_HIGH"],
+                "innates": ["ABILITY_SYNTH_INNATE_A"],
             },
             {
                 "constant": "SPECIES_SYNTH_ULTRA",
@@ -62,6 +71,8 @@ def _species_rows() -> list[dict[str, object]]:
                 "evolutions": [],
                 "types": ["TYPE_BUG"],
                 "stats": {"atk": 100, "spa": 100},
+                "abilities": ["ABILITY_SYNTH_MID"],
+                "innates": ["ABILITY_SYNTH_INNATE_B"],
             },
             {
                 "constant": "SPECIES_SYNTH_A0_MEGA",
@@ -72,6 +83,8 @@ def _species_rows() -> list[dict[str, object]]:
                 "evolutions": [],
                 "types": ["TYPE_GRASS"],
                 "stats": {"atk": 120, "spa": 120},
+                "abilities": ["ABILITY_SYNTH_HIGH"],
+                "innates": ["ABILITY_SYNTH_INNATE_C"],
             },
         ]
     )
@@ -94,6 +107,7 @@ def synthetic_source(tmp_path: Path) -> Path:
         (source / relative).mkdir(parents=True, exist_ok=True)
 
     move_config = load_move_config()
+    ability_config = load_ability_config()
     configured_moves = (
         move_config.protected_moves | move_config.signature_moves | move_config.excluded_moves
     )
@@ -118,8 +132,23 @@ def synthetic_source(tmp_path: Path) -> Path:
     (source / "docs/data/romhack-docs.json").write_text(
         json.dumps({"species": species_rows, "moves": move_rows}), encoding="utf-8"
     )
+
+    def ability_slots(row: dict[str, object]) -> list[str]:
+        configured = [str(value) for value in row["abilities"]]  # type: ignore[union-attr]
+        return (
+            [configured[0], "ABILITY_NONE", configured[1]]
+            if len(configured) == 2
+            else [configured[0], "ABILITY_NONE", "ABILITY_NONE"]
+        )
+
     species_blocks = "\n".join(
         f"[{row['constant']}] = {{\n"
+        "    .abilities = { "
+        + ", ".join(ability_slots(row))
+        + " },\n"
+        + "    .innates = { "
+        + ", ".join(str(value) for value in row["innates"])
+        + " },\n"
         "    .levelUpLearnset = sSyntheticLevelUpLearnset,\n"
         + ("    .isUltraBeast = TRUE,\n" if row["constant"] == "SPECIES_SYNTH_ULTRA" else "")
         + "},"
@@ -127,6 +156,34 @@ def synthetic_source(tmp_path: Path) -> Path:
     )
     (source / "src/data/pokemon/species_info/gen_1_families.h").write_text(
         species_blocks + "\n", encoding="utf-8"
+    )
+    synthetic_abilities = {
+        "ABILITY_NONE": 0,
+        "ABILITY_SYNTH_LOW": 2,
+        "ABILITY_SYNTH_MID": 5,
+        "ABILITY_SYNTH_HIGH": 8,
+        "ABILITY_SYNTH_ALT_A": 1,
+        "ABILITY_SYNTH_ALT_B": 3,
+        "ABILITY_SYNTH_ALT_C": 4,
+        "ABILITY_SYNTH_ALT_D": 6,
+        "ABILITY_SYNTH_ALT_E": 7,
+        "ABILITY_SYNTH_INNATE_A": 2,
+        "ABILITY_SYNTH_INNATE_B": 5,
+        "ABILITY_SYNTH_INNATE_C": 7,
+    }
+    for constant in ability_config.species_locked_abilities | ability_config.special_abilities:
+        synthetic_abilities.setdefault(constant, 5)
+    (source / "src/data/abilities.h").write_text(
+        "const struct AbilityInfo gAbilitiesInfo[] =\n{\n"
+        + "\n".join(
+            f"    [{constant}] =\n    {{\n        .aiRating = {rating},\n    }},"
+            for constant, rating in sorted(synthetic_abilities.items())
+        )
+        + "\n};\n",
+        encoding="utf-8",
+    )
+    (source / "src/data/pokemon/form_change_tables.h").write_text(
+        "// Synthetic fixture has no form-dependent abilities.\n", encoding="utf-8"
     )
     learnset = (
         "#define LEVEL_UP_MOVE(lvl, moveLearned) {.move = moveLearned, .level = lvl}\n"
@@ -192,6 +249,9 @@ def synthetic_source(tmp_path: Path) -> Path:
         " ITEM_SYNTH_KEY = 4,\n"
         "};\n",
         encoding="utf-8",
+    )
+    (source / "include/constants/species.h").write_text(
+        "// Synthetic species constants have no aliases.\n", encoding="utf-8"
     )
     (source / "src/data/items.h").write_text(
         "[ITEM_NONE] = { .pocket = POCKET_ITEMS },\n"

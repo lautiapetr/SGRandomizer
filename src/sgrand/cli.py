@@ -27,6 +27,15 @@ def parser() -> argparse.ArgumentParser:
             type=Path,
             help="versioned move-randomization JSON (default: embedded moves-v1.json)",
         )
+        command.add_argument(
+            "--abilities-config",
+            type=Path,
+            help="versioned ability JSON (default: embedded abilities-v1.json)",
+        )
+        command.add_argument(
+            "--ability-profile",
+            help="ability profile name (default: configuration default, Balanced)",
+        )
         if name == "apply":
             command.add_argument(
                 "--manifest", type=Path, help=f"report path (default: SOURCE/{DEFAULT_MANIFEST})"
@@ -50,6 +59,12 @@ def _print_report(report: dict[str, Any], mode: RunMode, manifest: Path | None) 
         f"{counts['static_and_gift_commands_changed']} static/gift Pokemon, "
         f"{counts['map_items_changed'] + counts['scripted_items_changed']} items, "
         f"{counts['files_changed']} source files"
+    )
+    print(
+        "Abilities: "
+        f"{counts['normal_abilities_species_changed']} normal sets, "
+        f"{counts['innates_species_changed']} innate sets "
+        f"({report['ability_config']['profile']})"
     )
     if mode is RunMode.APPLY:
         print(f"Manifest: {manifest}")
@@ -78,6 +93,8 @@ def main(argv: list[str] | None = None) -> int:
             manifest,
             bool(getattr(args, "force", False)),
             args.moves_config,
+            args.abilities_config,
+            args.ability_profile,
         )
     except RandomizerError as exc:
         print(f"error: {exc}", file=sys.stderr)

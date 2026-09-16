@@ -10,18 +10,22 @@ from typing import cast
 
 from .constants import SUPPORTED_TAG
 from .errors import RandomizerError
-from .models import Item, Move, Species
+from .models import Ability, Item, Move, Species
 
 REQUIRED_PATHS = (
     "docs/data/romhack-docs.json",
     "src/data/wild_encounters.json",
     "src/data/items.h",
     "src/data/moves_info.h",
+    "src/data/abilities.h",
+    "src/data/pokemon/form_change_tables.h",
+    "src/data/pokemon/species_info/gen_1_families.h",
     "src/data/pokemon/all_learnables.json",
     "src/data/pokemon/special_movesets.json",
     "src/data/pokemon/level_up_learnsets/gen_7.h",
     "src/data/pokemon/level_up_learnsets/gen_9.h",
     "include/constants/items.h",
+    "include/constants/species.h",
     "include/constants/tms_hms.h",
     "src/ui_birch_case.c",
     "data/maps",
@@ -113,6 +117,8 @@ def load_species(source: Path) -> dict[str, Species]:
             types=_string_list(entry.get("types")),
             attack=_integer(stats.get("atk")),
             special_attack=_integer(stats.get("spa")),
+            abilities=_string_list(entry.get("abilities")),
+            innates=_string_list(entry.get("innates")),
         )
 
     block_re = re.compile(r"\[(SPECIES_[A-Z0-9_]+)\]\s*=\s*\{(.*?)(?=\n\s*\[SPECIES_|\Z)", re.S)
@@ -134,10 +140,37 @@ def load_species(source: Path) -> dict[str, Species]:
                 types=old.types,
                 attack=old.attack,
                 special_attack=old.special_attack,
+                abilities=old.abilities,
+                innates=old.innates,
             )
     if not result:
         raise RandomizerError(f"No species were found in {docs_path}")
     return result
+
+
+def load_abilities(source: Path) -> dict[str, Ability]:
+    """Read authoritative ability constants and implicit/explicit AI ratings."""
+    data_path = source / "src/data/abilities.h"
+    text = data_path.read_text(encoding="utf-8")
+    pattern = re.compile(
+        r"^\s*\[(ABILITY_[A-Z0-9_]+)\]\s*=\s*\{(.*?)(?=^\s*\[ABILITY_|\Z)",
+        re.M | re.S,
+    )
+    result: dict[str, Ability] = {}
+    for constant, block in pattern.findall(text):
+        rating_match = re.search(r"\.aiRating\s*=\s*(-?\d+)", block)
+        rating = int(rating_match.group(1)) if rating_match else 0
+        result[constant] = Ability(constant=constant, ai_rating=rating)
+    if "ABILITY_NONE" not in result or len(result) < 2:
+        raise RandomizerError(f"No valid ability metadata was found in {data_path}")
+    return result
+
+
+def discover_form_locked_abilities(source: Path) -> frozenset[str]:
+    """Abilities used as predicates by the checkout's real form-change table."""
+    path = source / "src/data/pokemon/form_change_tables.h"
+    text = path.read_text(encoding="utf-8")
+    return frozenset(re.findall(r"ABILITY_[A-Z0-9_]+", text))
 
 
 def load_moves(source: Path) -> dict[str, Move]:

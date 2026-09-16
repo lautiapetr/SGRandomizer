@@ -23,9 +23,11 @@ synthetic fixtures and exported source trees.
 | `sgrand.transforms` | Pure text/JSON transformations for starters, wild data, scripts and items. |
 | `sgrand.move_config` | Versioned move-profile loading and strict schema/range validation. |
 | `sgrand.moves` | Separate property, level-up and TM/tutor compatibility passes. |
+| `sgrand.ability_config` | Strict versioned profiles, power bands and immutable protection lists. |
+| `sgrand.abilities` | Resolves real species-info storage and plans separate normal/innate assignments. |
 | `sgrand.rng` | Stable seed parsing and named independent PRNG streams. |
 | `sgrand.transaction` | Preflight, staging, atomic per-file replacement and rollback. |
-| `sgrand.interfaces` | Protocols for future move, ability, innate and trainer passes. |
+| `sgrand.interfaces` | Protocols for implemented passes and the future trainer pass. |
 
 The dependency direction is CLI → engine → parsers/transforms → immutable
 models. Parsers and transforms do not write. This makes preview the natural
@@ -69,6 +71,8 @@ The user seed is normalized to an integer. Each subsystem derives a separate
 - `move-properties`
 - `move-level-up-learnsets`
 - `move-tm-tutor-compatibility`
+- `species-abilities`
+- `species-innates`
 
 Creating, removing or consuming values in one stream cannot shift another
 subsystem. Stream names are part of the manifest and should be treated as a
@@ -79,10 +83,23 @@ reproducibility API: renaming one is a deliberate output-format change.
 `RandomizationPass` requires a named pass to return planned writes and audit
 records without mutating its source. `LevelUpLearnsetsPass`,
 `MoveCompatibilityPass` and `MovePropertiesPass` describe the implemented move
-boundaries. `AbilitiesPass`, `InnatesPass` and `TrainersPass` remain reserved
-extension points. Future implementations should receive their own named RNG
-streams, validate all referential constraints before returning, and let the
-engine merge their writes into the same transaction.
+boundaries. `AbilitiesPass` and `InnatesPass` are implemented as separate
+logical passes. Because both fields live in the same species-info records,
+their plans are validated and rendered into one write per family header.
+`TrainersPass` remains the reserved extension point.
+
+Ability metadata comes from the authoritative `gAbilitiesInfo` designated
+initializers; omitted ratings use C's implicit zero. Effective species arrays
+come from the documentation projection and are resolved back to literal,
+conditional, aliased and shared-macro storage in `species_info`. Evolution and
+shared-storage unions are decided before selection. The innate pass receives
+the completed normal assignment only to enforce the invariant that an innate
+cannot repeat a main ability; its random draws remain on a separate stream.
+
+Form-change predicate abilities and the mandatory species-locked list are
+never candidates. Their owners, all owners of the same source initializer and
+parameterized macros that cannot be split safely are preserved as complete
+normal/innate pairs. See [ability configuration](abilities-config.md).
 
 Move selection uses the canonical metadata snapshot loaded before any writes.
 This keeps the learnset stream independent from property RNG consumption.
@@ -91,9 +108,11 @@ the physical/special category of ordinary damaging moves. It never changes
 `.effect`, priority, targets, flags, animation, zero-power status moves or
 variable/fixed-power moves represented by power 0/1.
 
-If two passes propose the same path, the future composition layer must merge
-their transformations explicitly; a transaction rejects duplicate targets.
-This prevents order-dependent silent overwrites.
+If two passes propose the same path, they must merge their transformations
+before building the transaction; a transaction rejects duplicate targets.
+The abilities subsystem already does this for the normal and innate passes,
+producing one final write per species-info file. This prevents order-dependent
+silent overwrites.
 
 ## Compatibility strategy
 

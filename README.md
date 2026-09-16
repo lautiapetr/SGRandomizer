@@ -8,9 +8,11 @@ graphics, ROMs, build products or other game assets.
 The engine randomizes the main wild-encounter table, the nine starter choices,
 scripted static/gift Pokémon, item balls, hidden items, scripted item gifts and
 three independent move domains: level-up learnsets, TM/tutor compatibility and
-basic move properties. Legendary, Mythical, Ultra Beast and Paradox species
-remain unchanged. Move effects, abilities, innate abilities and trainer parties
-are intentionally unchanged.
+basic move properties. It also randomizes normal/hidden abilities and innate
+abilities with separate RNG streams, evolution-aware policies and hard form
+protections. Legendary, Mythical, Ultra Beast and Paradox species remain
+unchanged in species-placement passes. Move effects and trainer parties are
+intentionally unchanged.
 
 ## Requirements and installation
 
@@ -42,15 +44,21 @@ transaction:
 sgrand apply --source /path/to/soulgold --seed 12345
 ```
 
-Both commands use the embedded, versioned `moves-v1.json` profile. Supply a
-validated custom profile when tuning percentages or exclusions:
+Both commands use embedded, versioned move and ability configurations. Supply
+validated custom files when tuning percentages, power rules or exclusions:
 
 ```bash
 sgrand preview --source /path/to/soulgold --seed 12345 \
   --moves-config /path/to/moves-v1-custom.json
+
+sgrand preview --source /path/to/soulgold --seed 12345 \
+  --abilities-config /path/to/abilities-v1-custom.json \
+  --ability-profile Chaos
 ```
 
-See [move configuration](docs/moves-config.md) for every field and invariant.
+See [move configuration](docs/moves-config.md) and
+[ability configuration](docs/abilities-config.md) for every field and
+invariant. `Balanced` is the default ability profile; `Chaos` is opt-in.
 
 The default manifest is
 `/path/to/soulgold/soulgold-randomizer-manifest.json`. The tool refuses to

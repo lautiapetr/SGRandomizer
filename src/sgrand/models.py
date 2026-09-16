@@ -19,6 +19,8 @@ class Species:
     types: tuple[str, ...] = ()
     attack: int = 0
     special_attack: int = 0
+    abilities: tuple[str, ...] = ()
+    innates: tuple[str, ...] = ()
 
     @property
     def is_special(self) -> bool:
@@ -59,6 +61,12 @@ class Move:
             "DAMAGE_CATEGORY_PHYSICAL",
             "DAMAGE_CATEGORY_SPECIAL",
         }
+
+
+@dataclass(frozen=True)
+class Ability:
+    constant: str
+    ai_rating: int
 
 
 @dataclass(frozen=True)

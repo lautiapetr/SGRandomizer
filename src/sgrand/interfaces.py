@@ -32,11 +32,11 @@ class MovePropertiesPass(RandomizationPass, Protocol):
 
 
 class AbilitiesPass(RandomizationPass, Protocol):
-    """Reserved contract for regular and hidden ability randomization."""
+    """Contract for regular and hidden ability randomization."""
 
 
 class InnatesPass(RandomizationPass, Protocol):
-    """Reserved contract for innate-ability randomization."""
+    """Contract for independently seeded innate-ability randomization."""
 
 
 class TrainersPass(RandomizationPass, Protocol):

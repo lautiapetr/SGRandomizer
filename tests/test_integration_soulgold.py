@@ -20,6 +20,8 @@ def test_preview_real_soulgold_checkout() -> None:
         "src/data/pokemon/all_learnables.json",
         "src/data/pokemon/level_up_learnsets/gen_7.h",
         "src/data/pokemon/level_up_learnsets/gen_9.h",
+        "src/data/pokemon/species_info/gen_1_families.h",
+        "src/data/pokemon/species_info/gen_9_families.h",
     )
     before = {relative: (source / relative).read_bytes() for relative in observed}
     report = Randomizer().run(source, "integration-seed")
@@ -27,5 +29,8 @@ def test_preview_real_soulgold_checkout() -> None:
     assert report["counts"]["level_up_slots_changed"] > 0
     assert report["counts"]["compatibility_species_changed"] > 0
     assert report["counts"]["move_properties_changed"] > 0
+    assert report["counts"]["normal_abilities_species_changed"] > 0
+    assert report["counts"]["innates_species_changed"] > 0
+    assert report["abilities"]["protected_species"] > 0
     assert report["counts"]["files_changed"] > 0
     assert {relative: (source / relative).read_bytes() for relative in observed} == before

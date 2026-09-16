@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "default_profile": "Balanced",
+  "blacklist": [],
+  "species_locked_abilities": [
+    "ABILITY_AS_ONE_ICE_RIDER",
+    "ABILITY_AS_ONE_SHADOW_RIDER",
+    "ABILITY_BATTLE_BOND",
+    "ABILITY_COMMANDER",
+    "ABILITY_DISGUISE",
+    "ABILITY_EMBODY_ASPECT_CORNERSTONE_MASK",
+    "ABILITY_EMBODY_ASPECT_HEARTHFLAME_MASK",
+    "ABILITY_EMBODY_ASPECT_TEAL_MASK",
+    "ABILITY_EMBODY_ASPECT_WELLSPRING_MASK",
+    "ABILITY_FLOWER_GIFT",
+    "ABILITY_FORECAST",
+    "ABILITY_GULP_MISSILE",
+    "ABILITY_HUNGER_SWITCH",
+    "ABILITY_ICE_FACE",
+    "ABILITY_MULTITYPE",
+    "ABILITY_POWER_CONSTRUCT",
+    "ABILITY_RKS_SYSTEM",
+    "ABILITY_SCHOOLING",
+    "ABILITY_SHIELDS_DOWN",
+    "ABILITY_STANCE_CHANGE",
+    "ABILITY_TERAFORM_ZERO",
+    "ABILITY_TERA_SHELL",
+    "ABILITY_TERA_SHIFT",
+    "ABILITY_ZEN_MODE",
+    "ABILITY_ZERO_TO_HERO"
+  ],
+  "special_abilities": [
+    "ABILITY_ARENA_TRAP",
+    "ABILITY_BEAST_BOOST",
+    "ABILITY_CONTRARY",
+    "ABILITY_GOOD_AS_GOLD",
+    "ABILITY_HUGE_POWER",
+    "ABILITY_LIBERO",
+    "ABILITY_MAGIC_BOUNCE",
+    "ABILITY_MOODY",
+    "ABILITY_MULTISCALE",
+    "ABILITY_PARENTAL_BOND",
+    "ABILITY_PRISM_ARMOR",
+    "ABILITY_PROTEAN",
+    "ABILITY_PURE_POWER",
+    "ABILITY_SHADOW_SHIELD",
+    "ABILITY_SHADOW_TAG",
+    "ABILITY_SIMPLE",
+    "ABILITY_SOUL_HEART",
+    "ABILITY_SPEED_BOOST",
+    "ABILITY_WONDER_GUARD"
+  ],
+  "profiles": {
+    "Balanced": {
+      "abilities": {
+        "enabled": true,
+        "follow_evolutions": true,
+        "allow_duplicates": false,
+        "rating_strategy": "similar",
+        "minimum_ai_rating": 1,
+        "maximum_ai_rating": 8,
+        "maximum_rating_delta": 2,
+        "allow_special_abilities": false
+      },
+      "innates": {
+        "enabled": true,
+        "follow_evolutions": true,
+        "count_mode": "vanilla",
+        "fixed_count": 3,
+        "allow_duplicates": false,
+        "rating_strategy": "similar",
+        "minimum_ai_rating": 1,
+        "maximum_ai_rating": 8,
+        "maximum_rating_delta": 2,
+        "allow_special_abilities": false
+      }
+    },
+    "Chaos": {
+      "abilities": {
+        "enabled": true,
+        "follow_evolutions": false,
+        "allow_duplicates": true,
+        "rating_strategy": "any",
+        "minimum_ai_rating": -2,
+        "maximum_ai_rating": 10,
+        "maximum_rating_delta": 10,
+        "allow_special_abilities": true
+      },
+      "innates": {
+        "enabled": true,
+        "follow_evolutions": false,
+        "count_mode": "fixed",
+        "fixed_count": 3,
+        "allow_duplicates": true,
+        "rating_strategy": "any",
+        "minimum_ai_rating": -2,
+        "maximum_ai_rating": 10,
+        "maximum_rating_delta": 10,
+        "allow_special_abilities": true
+      }
+    }
+  }
+}

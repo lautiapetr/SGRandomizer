@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sgrand"
-version = "0.3.0"
+version = "0.4.0"
 description = "Deterministic source randomizer for Pokemon SoulGold v.1.1.4"
 readme = "README.md"
 requires-python = ">=3.11"
